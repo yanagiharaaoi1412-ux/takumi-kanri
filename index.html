@@ -1431,14 +1431,79 @@ async function getTessWorkers(){
   await jpn.setParameters({tessedit_pageseg_mode:'7',preserve_interword_spaces:'1'});
   const num=await Tesseract.createWorker('eng');
   await num.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789,.-¥\\\\'});
-  tessWorkers={jpn,num};return tessWorkers;
+  // 2つ目の読み取りエンジン（別の学習データ）。2つの結果を見比べて、より確かな方を採用する
+  let jpn2=null;
+  try{jpn2=await Tesseract.createWorker('jpn',1,{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/jpn/4.0.0'});
+    await jpn2.setParameters({tessedit_pageseg_mode:'7',preserve_interword_spaces:'1'});}catch(e){console.warn('jpn2',e);jpn2=null;}
+  tessWorkers={jpn,num,jpn2};return tessWorkers;
 }
 // 1マス分の文字認識（テスト時は差し替え可能）
 async function ocrCell(canvas,kind){
-  if(window.__ocrStub)return window.__ocrStub(canvas.toDataURL('image/png'),kind);
+  const clean=t=>String(t||'').replace(/\n+/g,' ').trim();
+  if(window.__ocrStub){
+    const a=clean(await window.__ocrStub(canvas.toDataURL('image/png'),kind));
+    if(kind!=='jpn')return a;
+    const b=clean(await window.__ocrStub(canvas.toDataURL('image/png'),kind,'fast'));
+    return ocrMerge(a,b);
+  }
   const w=await getTessWorkers();
-  const {data}=await (kind==='num'?w.num:w.jpn).recognize(canvas);
-  return (data.text||'').replace(/\n+/g,' ').trim();
+  if(kind==='num')return clean((await w.num.recognize(canvas)).data.text);
+  const a=clean((await w.jpn.recognize(canvas)).data.text);
+  if(!w.jpn2)return ocrFix(a);
+  const b=clean((await w.jpn2.recognize(canvas)).data.text);
+  return ocrMerge(a,b);
+}
+// ===== 読み取った文字の補正：建築でよく使う言葉・これまでの明細と見比べて、1文字違いを直す =====
+const OCR_WORDS=('工事 取替 取替工事 取替え 取付 取付工事 取外し 撤去 撤去費 撤去工事 処分 処分費 産廃処分費 廃材処分 解体 解体工事 設置 設置工事 交換 交換工事 補修 補修工事 修理 塗装 塗装工事 下地 下地処理 養生 清掃 運搬 運搬費 搬入 搬出 '+
+ '諸経費 現場管理費 一般管理費 材料費 労務費 人工 手間 施工費 仮設 仮設工事 足場 足場工事 鍵 鍵取替 鍵交換 玄関 玄関扉 扉 錠 シリンダー サッシ 窓 網戸 屋根 屋根工事 外壁 外壁塗装 内装 内装工事 床 壁 天井 クロス フローリング '+
+ '給水 給水管 排水 排水管 給湯 給湯器 配管 配管工事 設備 設備工事 水道 水道設備工事 電気 電気工事 照明 コンセント 換気扇 浴室 ユニットバス 便器 トイレ キッチン 洗面 洗面台 防水 防水工事 シーリング コーキング '+
+ '基礎 土間 コンクリート モルタル モルタル仕上げ ブロック フェンス カーポート ユニック 回送費 運賃 交通費 駐車場 値引き 出精値引き 小計 合計 消費税 一式 含む 込み 新設 移設 既存 調整 処理 埋戻し 掘削 砕石 充填 仕上げ 穴埋 '+
+ '鉄骨 アルミ 木製 樹脂 金物 ボード 石膏ボード 断熱材 合板 タイル 左官 大工 板金 雨樋 波板 手摺 階段 建具 ドア 引戸 襖 障子 畳 カーテン ブラインド 機器 本体 部材 部品 材料 運搬処分 産業廃棄物 ガラ 残土').split(' ');
+let OCR_LEX=null;
+function ocrLex(){
+  if(OCR_LEX)return OCR_LEX;
+  const set=new Set(OCR_WORDS);
+  // これまでに作った帳票・登録した明細の品名も辞書に入れる
+  try{getProjects().forEach(p=>(p.docs||[]).forEach(d=>((d.F&&d.F.lines)||[]).forEach(l=>String(l.desc||'').split(/[\s　、,（）()]+/).forEach(w=>{if(w.length>=2&&w.length<=12&&!/^[\d.,]+$/.test(w))set.add(w);}))));}catch{}
+  const words=[...set].filter(w=>w.length>=2).sort((a,b)=>b.length-a.length);
+  const freq={};words.forEach(w=>{for(const c of w)freq[c]=(freq[c]||0)+1;});
+  OCR_LEX={words,freq};setTimeout(()=>{OCR_LEX=null;},60000);
+  return OCR_LEX;
+}
+const isKanji=c=>/[\u3400-\u9fff]/.test(c);
+function ocrFix(t){
+  if(!t)return t;
+  const {words}=ocrLex();let out=t;
+  const lens=[...new Set(words.map(w=>w.length))].filter(n=>n>=3).sort((a,b)=>b-a);
+  for(const L of lens){
+    const ws=words.filter(w=>w.length===L);
+    for(let i=0;i+L<=out.length;i++){
+      const seg=out.slice(i,i+L);
+      if(ws.includes(seg))continue;
+      // 漢字1文字だけの読み違い（ほかの文字はすべて一致）で、候補が1つに決まるときだけ直す
+      const cand=new Set();
+      for(const w of ws){
+        let diff=0,pos=-1;
+        for(let j=0;j<L;j++)if(seg[j]!==w[j]){diff++;pos=j;if(diff>1)break;}
+        if(diff===1&&isKanji(seg[pos])&&isKanji(w[pos]))cand.add(w);
+      }
+      if(cand.size===1){const w=[...cand][0];out=out.slice(0,i)+w+out.slice(i+L);}
+    }
+  }
+  return out;
+}
+function ocrScore(t){const {words,freq}=ocrLex();let s=0;words.forEach(w=>{if(w.length>=2&&t.includes(w))s+=w.length*2;});for(const c of t)s+=Math.min(3,freq[c]||0)*0.2;return s;}
+function ocrMerge(a,b){
+  a=ocrFix(a);b=ocrFix(b);
+  if(!a)return b;if(!b||a===b)return a;
+  const {freq}=ocrLex();
+  if(a.length===b.length){
+    // 同じ長さなら1文字ずつ見比べ、よく使う文字の方を採用
+    let m='';for(let i=0;i<a.length;i++)m+=a[i]===b[i]?a[i]:((freq[b[i]]||0)>(freq[a[i]]||0)?b[i]:a[i]);
+    m=ocrFix(m);
+    return [a,b,m].sort((x,y)=>ocrScore(y)-ocrScore(x))[0];
+  }
+  return ocrScore(b)>ocrScore(a)?b:a;
 }
 // OCR結果の整形：「\964, 280」→「¥964,280」
 function ocrTidy(t){return String(t||'').replace(/\\(?=\d)/g,'¥').replace(/(\d)[,，]\s+(\d{3})/g,'$1,$2');}
@@ -1731,7 +1796,7 @@ const HDR={
   spec:/^(規格|仕様|型番|品番|型式|メーカー)$/,
   no:/^(No\.?|NO\.?|№|番号|項|項番|行)$/
 };
-const TOTAL_RE=/(小計|合計|総計|総額|消費税|税込|税抜|御見積金額|お見積金額|見積金額|値引後|計$)/;
+const TOTAL_RE=/(小計|合計|総計|総額|消費税|税込|税抜|御見積金額|お見積金額|見積金額|値引後|計$|^総合)/;
 const HDR_WORDS=/^(名称|品名|品目|規格|仕様|数量|単位|単価|金額|備考|摘要|内容|項目|番号)/;
 function mergeHeaderCells(cells){
   const out=[];
@@ -1801,6 +1866,8 @@ function finishLine(L){
   let qty=num(L.qty),price=num(L.price),amount=num(L.amount);
   if(price===null&&amount!==null&&qty)price=Math.round(amount/qty*100)/100;
   if(qty===null&&price&&amount!==null){const q=amount/price;qty=Math.abs(q-Math.round(q))<0.01?Math.round(q):Math.round(q*100)/100;}
+  // 金額だけ書かれた行（諸経費など）は「1式」として扱う
+  if(qty===null&&price===null&&amount!==null&&desc&&!TOTAL_RE.test(desc.replace(/\s/g,''))){qty=1;price=amount;if(!unit)unit='式';}
   return {desc,qty,unit,price,amount,memo};
 }
 // ヘッダーが見つからない場合：右から 金額・単価・数量 と読む
@@ -3592,7 +3659,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04r';
+const APP_VERSION='2026.10.04s';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
