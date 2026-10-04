@@ -168,7 +168,8 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
     <button class="btn" onclick="saveDraft()">💾 保存</button>
     <button class="btn" id="est2inv-btn" onclick="createInvoiceFromEstimate(S.projectId)" style="display:none;color:#1e4a32;border-color:#1e4a32;font-weight:600">→ この見積から請求書を作成</button>
     <button class="btn" onclick="confirmReset()" style="color:#c0392b;border-color:#e0b0aa">🗑 新規作成</button>
-    <span class="bar-note">印刷後は「✓ 発行確定」で連番が進みます</span>
+    <span id="autosave-note" style="font-size:11px;color:#1e4a32;margin-left:auto;white-space:nowrap"></span>
+    <span class="bar-note" style="margin-left:12px">印刷後は「✓ 発行確定」で連番が進みます</span>
   </div>
 </div>
 </div>
@@ -268,6 +269,7 @@ function setDoc(id){
   setTimeout(()=>{refreshNoDisplay();autoPreview();},50);
 }
 function setTax(t){
+  setTimeout(markDirty,0);
   saveFormState();S.taxType=t;
   document.getElementById('tax-inc').classList.toggle('active',t==='inc');
   document.getElementById('tax-exc').classList.toggle('active',t==='exc');
@@ -285,6 +287,7 @@ function setMainTab(t){
   const inEditor=t==='form'||t==='preview';
   if(inEditor&&!S.projectId){t='proj';}            // 帳票は案件からのみ
   if(!inEditor&&(S.mainTab==='form')&&document.getElementById('f-date')) saveFormState();
+  if(!inEditor)autoSaveNow();
   S.mainTab=t;
   const editor=t==='form'||t==='preview';
   ['proj','issued','received','master'].forEach(id=>{
@@ -307,6 +310,7 @@ function setMainTab(t){
   if(t==='master') renderMaster();
 }
 function backFromEditor(){
+  autoSaveNow();
   saveFormState();
   if(S.backTo==='issued'){setMainTab('issued');return;}
   P.openId=S.projectId;setMainTab('proj');
@@ -359,13 +363,37 @@ function lineProfit(lines,taxType){
   const profit=sales-cost;
   return {sales,cost,profit,missing,rate:sales?Math.round(profit/sales*1000)/10:0};
 }
-function addLine(){saveFormState();F.lines.push({desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''});renderForm();}
+// ===== 自動保存（入力が止まって約1.5秒後に、案件へ下書き保存） =====
+const AUTO={timer:null,dirty:false,saving:false};
+function markDirty(){
+  if(!S.projectId||!(S.mainTab==='form'||S.mainTab==='preview'))return;
+  AUTO.dirty=true;
+  const n=document.getElementById('autosave-note');if(n)n.innerHTML='<span style="color:#b86e00">● 未保存（まもなく自動保存）</span>';
+  clearTimeout(AUTO.timer);AUTO.timer=setTimeout(autoSaveNow,1500);
+}
+function autoSaveNow(){
+  clearTimeout(AUTO.timer);
+  if(!AUTO.dirty||!S.projectId)return;
+  const proj=getProject(S.projectId);if(!proj)return;
+  if(document.getElementById('f-date'))saveFormState();
+  AUTO.dirty=false;
+  saveDocToProject(proj,F.issued?'発行済':'下書き');
+  const d=new Date();const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const n=document.getElementById('autosave-note');if(n)n.textContent=`✓ 自動保存 ${hm}`;
+}
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#panel-form'))markDirty();});
+document.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#panel-form'))markDirty();});
+window.addEventListener('beforeunload',e=>{
+  if(AUTO.dirty)autoSaveNow();
+  if(AUTO.dirty||(typeof SH!=='undefined'&&SH.pending)){e.preventDefault();e.returnValue='';}
+});
+function addLine(){saveFormState();F.lines.push({desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''});renderForm();markDirty();}
 function removeLine(i){
   saveFormState();
   // 最後の1行は消さずに中身を空にする（入力欄は残す）
   if(F.lines.length>1)F.lines.splice(i,1);
   else F.lines=[{desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''}];
-  renderForm();
+  renderForm();markDirty();
 }
 function updateAmt(i){
   const rows=document.querySelectorAll('.line-row');
@@ -376,6 +404,9 @@ function updateAmt(i){
   const price=numIn(pv)||0;
   const el=document.getElementById('la-'+i);
   if(el)el.textContent=(qv===''&&pv==='')?'':fmt(qty*price);
+  // 仕入金額（仕入単価×数量）
+  const ce=document.getElementById('lca-'+i),ci=row.querySelector('.lc');
+  if(ce&&ci){const cv=numIn(ci.value);ce.textContent=cv===''?'':fmt(qty*cv);}
   // 値引き（マイナス）の行は赤文字
   row.classList.toggle('neg-row',qty*price<0||price<0||qty<0);
   updateSubtotalDisplay();
@@ -395,7 +426,9 @@ function updateSubtotalDisplay(){
   if(pe){
     const ls=Array.from(rows).map(row=>({qty:numIn(row.querySelector('.lq').value),unitPrice:numIn(row.querySelector('.lp').value),cost:row.querySelector('.lc')?numIn(row.querySelector('.lc').value):''}));
     const pr=lineProfit(ls,S.taxType);
-    pe.innerHTML=pr.sales?`粗利（税抜）<b style="color:${pr.profit<0?'#c0392b':'#1e4a32'}">${fmtY(pr.profit)}</b>（${pr.rate}%）${pr.missing?`<span style="color:#b86e00">　※仕入単価が未入力の行が${pr.missing}行あります</span>`:''}`:'';
+    const costSum=ls.reduce((a,l)=>a+(l.cost===''||l.cost==null?0:(l.qty===''?0:l.qty||0)*(l.cost||0)),0);
+    const taxL=S.taxType==='inc'?'税込':'税抜';
+    pe.innerHTML=(costSum||pr.sales?`仕入合計（${taxL}）<b style="color:#7a6a2a">${fmtY(costSum)}</b>　`:'')+(pr.sales?`粗利（税抜）<b style="color:${pr.profit<0?'#c0392b':'#1e4a32'}">${fmtY(pr.profit)}</b>（${pr.rate}%）${pr.missing?`<span style="color:#b86e00">　※仕入単価が未入力の行が${pr.missing}行あります</span>`:''}`:'');
   }
   if(el){
     if(S.taxType==='inc'){
@@ -489,13 +522,13 @@ function renderForm(){
     h+=`<div class="sec-title">▸ 明細</div>
     <table class="line-tbl">
       <thead><tr>
-        <th style="width:30%">品名・摘要</th>
-        <th style="width:9%">数量</th>
-        <th style="width:8%">単位</th>
-        <th style="width:16%">${unitLabel}</th>
-        <th style="width:15%">${amtLabel}</th>
-        ${d.id==='estimate'?`<th style="width:12%">仕入単価 <span style="font-weight:400;color:#aaa">※帳票に出ません</span></th>`:''}
-        <th style="width:16%">備考</th>
+        <th style="width:${d.id==='estimate'?24:30}%">品名・摘要</th>
+        <th style="width:7%">数量</th>
+        <th style="width:7%">単位</th>
+        <th style="width:${d.id==='estimate'?12:16}%">${unitLabel}</th>
+        <th style="width:${d.id==='estimate'?11:15}%">${amtLabel}</th>
+        ${d.id==='estimate'?`<th style="width:11%;background:#fbfaf3">仕入単価</th><th style="width:10%;background:#fbfaf3">仕入金額 <span style="font-weight:400;color:#aaa;font-size:10px">※帳票に出ません</span></th>`:''}
+        <th style="width:${d.id==='estimate'?12:16}%">備考</th>
         <th style="width:6%"></th>
       </tr></thead>
       <tbody>
@@ -505,7 +538,8 @@ function renderForm(){
         <td><select class="lu" style="width:56px;font-size:12px;padding:3px 2px;border:1px solid #ddd;border-radius:4px;font-family:inherit">${[...new Set(['','台','式','件','個','枚',l.unit||''])].map(u=>`<option${(l.unit||'')===u?' selected':''}>${u}</option>`).join('')}</select></td>
         <td><input class="lp" type="text" value="${l.unitPrice===0&&l.qty===0?'':l.unitPrice||''}" oninput="updateAmt(${i})"/></td>
         <td style="text-align:right;padding:3px 6px;font-size:12px" id="la-${i}">${(l.qty===''&&l.unitPrice==='')?'':fmt(lineAmt(l))}</td>
-        ${d.id==='estimate'?`<td><input class="lc" type="text" value="${l.cost??''}" placeholder="仕入値" oninput="updateAmt(${i})" style="background:#fbfaf3"/></td>`:''}
+        ${d.id==='estimate'?`<td><input class="lc" type="text" value="${l.cost??''}" placeholder="仕入値" oninput="updateAmt(${i})" style="background:#fbfaf3"/></td>
+        <td style="text-align:right;padding:3px 6px;font-size:12px;color:#7a6a2a;background:#fbfaf3" id="lca-${i}">${l.cost===''||l.cost==null?'':fmt((parseFloat(l.qty)||0)*(parseFloat(l.cost)||0))}</td>`:''}
         <td><input class="lm" value="${esc(l.memo||'')}" placeholder="備考"/></td>
         <td><button class="btn sm del" onclick="removeLine(${i})">×</button></td>
       </tr>`).join('')}
@@ -1087,6 +1121,7 @@ function importFromGrid(){
   }
   closePasteModal();
   renderForm();
+  markDirty();
 }
 
 // ===== 書類番号自動生成 =====
@@ -1938,7 +1973,7 @@ function importQuoteLines(){
   saveFormState();
   const isEmpty=F.lines.every(l=>!l.desc&&(l.unitPrice===''||l.unitPrice==null));
   F.lines=(IMP.mode==='replace'||isEmpty)?newLines:[...F.lines,...newLines];
-  closePdfImport();renderForm();
+  closePdfImport();renderForm();markDirty();
   alert(`${newLines.length}行を見積書に取り込みました。`);
 }
 
@@ -2465,6 +2500,7 @@ function setTaxUI(){
 function clearDocForms(){Object.keys(docForms).forEach(k=>delete docForms[k]);}
 
 function startDocFromProject(projId,docType,fromEst){
+  autoSaveNow();
   const proj=getProject(projId);if(!proj)return;
   S.projectId=projId;clearDocForms();S.backTo='proj';
   S.docType=docType;
@@ -2490,6 +2526,7 @@ function createInvoiceFromEstimate(projId,key){
   alert(`見積書「${est.no}」から請求書を作成しました。\n内容を確認して、印刷・発行確定してください。`);
 }
 function openProjectDoc(projId,key,from){
+  autoSaveNow();
   const proj=getProject(projId);if(!proj)return;
   const doc=(proj.docs||[]).find(d=>d.key===key);if(!doc)return;
   S.projectId=projId;clearDocForms();S.backTo=from||'proj';
@@ -3173,7 +3210,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04h';
+const APP_VERSION='2026.10.04i';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
