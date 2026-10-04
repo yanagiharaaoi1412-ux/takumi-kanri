@@ -109,6 +109,8 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
   #panel-preview{display:block!important}
   @page{size:A4;margin:0}
 }
+.staff-chip{display:inline-block;font-size:11.5px;padding:1px 9px;border-radius:999px;background:#e6f0e9;color:#1e4a32;border:1px solid #c9dccf;white-space:nowrap;margin:1px 0}
+.no-staff{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:#fdecea;color:#c0392b;border:1px solid #f3c2bc;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -2439,7 +2441,36 @@ const STATUSES=[
   {k:'失注',  c:'#a33',   bg:'#fbeaea'}
 ];
 const statusOrder=k=>STATUSES.findIndex(s=>s.k===k);
-const P={q:'',status:'',openId:null};
+const P={q:'',status:'',staff:'',openId:null};
+// ===== 案件の担当（複数可・手入力） =====
+const staffOf=p=>Array.isArray(p&&p.staff)?p.staff.filter(Boolean):(p&&p.staff?[String(p.staff)]:[]);
+const NO_STAFF='<span class="no-staff">⚠ 担当未設定</span>';
+function staffChips(p){const a=staffOf(p);return a.length?a.map(n=>`<span class="staff-chip">${esc(n)}</span>`).join(' '):NO_STAFF;}
+// 担当の候補：登録したアカウントの名前＋これまでの案件で使った名前
+function staffSuggestions(){
+  const set=new Set();
+  memberList().forEach(m=>set.add(m.name));
+  getProjects().forEach(p=>staffOf(p).forEach(n=>set.add(n)));
+  return [...set].filter(Boolean);
+}
+function memberList(){
+  if(typeof SH==='undefined'||!SH.members)return [];
+  return Object.values(SH.members).filter(m=>m&&(m.lastName||m.firstName)).map(m=>({...m,name:[m.lastName,m.firstName].filter(Boolean).join(' ')}));
+}
+const PE={staff:[]};
+function peStaffRender(){
+  const box=document.getElementById('pe-staff-chips');if(!box)return;
+  box.innerHTML=PE.staff.length?PE.staff.map((n,i)=>`<span class="staff-chip">${esc(n)}<a href="#" title="外す" onclick="PE.staff.splice(${i},1);peStaffRender();return false" style="margin-left:5px;color:#888;text-decoration:none">×</a></span>`).join(' ')
+    :NO_STAFF;
+  const sg=document.getElementById('pe-staff-sg');
+  if(sg){const c=staffSuggestions().filter(n=>!PE.staff.includes(n));
+    sg.innerHTML=c.length?'<span style="font-size:10.5px;color:#999;margin-right:4px">候補：</span>'+c.map(n=>`<button type="button" class="btn sm" style="font-size:11px;padding:2px 8px" onclick="peStaffAdd(${esc(JSON.stringify(n))})">＋ ${esc(n)}</button>`).join(' '):'';}
+}
+function peStaffAdd(v){
+  String(v||'').split(/[,、，\n]/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean).forEach(n=>{if(!PE.staff.includes(n))PE.staff.push(n);});
+  peStaffRender();
+}
+function peStaffFromInput(){const e=document.getElementById('pe-staff-in');if(!e)return;if(e.value.trim()){peStaffAdd(e.value);e.value='';}}
 
 function getProjects(){const l=collGet('projects',PROJ_KEY);return shared()?l.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)):l;}
 function saveProjects(list){collSave('projects',PROJ_KEY,list);}
@@ -2568,11 +2599,16 @@ function renderProjects(){
     <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">案件一覧</div>
     <button class="btn primary" onclick="openProjEditor()">＋ 新規案件</button>
     <button class="btn" onclick="openPastImport()" title="このツールを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
-    <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所で検索"
+    <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所・担当で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <select onchange="P.status=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
       <option value="">すべてのステータス</option>
       ${STATUSES.map(s=>`<option${P.status===s.k?' selected':''}>${s.k}</option>`).join('')}
+    </select>
+    <select onchange="P.staff=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
+      <option value="">すべての担当</option>
+      <option value="__none"${P.staff==='__none'?' selected':''}>⚠ 担当未設定</option>
+      ${staffSuggestions().map(n=>`<option value="${esc(n)}"${P.staff===n?' selected':''}>${esc(n)}</option>`).join('')}
     </select>
   </div>
   <div id="pj-list"></div>
@@ -2583,7 +2619,9 @@ function renderProjects(){
 function renderProjList(){
   const q=P.q.trim().toLowerCase();
   const list=getProjects().filter(p=>(!P.status||p.status===P.status)&&
-    (!q||[p.name,p.client,p.site,p.no,p.clientAddr].join(' ').toLowerCase().includes(q)));
+    (!P.staff||(P.staff==='__none'?!staffOf(p).length:staffOf(p).includes(P.staff)))&&
+    (!q||[p.name,p.client,p.site,p.no,p.clientAddr,...staffOf(p)].join(' ').toLowerCase().includes(q)));
+  const noStaff=getProjects().filter(p=>!staffOf(p).length&&p.status!=='失注').length;
   const counts={};getProjects().forEach(p=>counts[p.status]=(counts[p.status]||0)+1);
   const th='style="text-align:left;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0;white-space:nowrap"';
   const td='style="padding:8px;border-bottom:1px solid #eee;font-size:12px;vertical-align:middle"';
@@ -2591,20 +2629,22 @@ function renderProjList(){
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
     ${STATUSES.map(s=>`<span onclick="P.status=P.status==='${s.k}'?'':'${s.k}';renderProjects()" style="cursor:pointer;opacity:${!P.status||P.status===s.k?1:.45}">${statusBadge(s.k)}<span style="font-size:11px;color:#888;margin:0 6px 0 3px">${counts[s.k]||0}</span></span>`).join('')}
   </div>
+  ${noStaff?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
   <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
   <table style="width:100%;border-collapse:collapse">
-    <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th><th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
+    <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th><th ${th}>担当</th><th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
     <tbody>
     ${list.length?list.map(p=>`<tr onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
       <td ${td}><span style="color:#888">${esc(p.no)}</span></td>
       <td ${td}><b>${txt(p.name)}</b></td>
+      <td ${td}>${staffChips(p)}</td>
       <td ${td}>${txt(p.client)} ${txt(p.clientTitle||'')}</td>
       <td ${td}>${txt(p.site)}</td>
       <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:11.5px;white-space:nowrap">${p.start||p.end?`${fmtD(p.start)} 〜 ${fmtD(p.end)}`:'<span style="color:#bbb">未定</span>'}</td>
       <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:12px;text-align:right;white-space:nowrap">${hasYen(p.contractActual)?fmtY(p.contractActual):hasYen(p.contract)?`<span style="color:#999;font-size:11px">予定 </span><span style="color:#888">${fmtY(p.contract)}</span>`:'<span style="color:#bbb">—</span>'}</td>
       <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}>${(p.docs||[]).length}件</td>
-    </tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:28px;color:#aaa;font-size:12px">${getProjects().length?'該当する案件がありません':'まだ案件がありません。「＋ 新規案件」から起票してください。'}</td></tr>`}
+    </tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:28px;color:#aaa;font-size:12px">${getProjects().length?'該当する案件がありません':'まだ案件がありません。「＋ 新規案件」から起票してください。'}</td></tr>`}
     </tbody>
   </table></div>`;
   renderProjDetail();
@@ -2631,6 +2671,10 @@ function renderProjDetail(){
         <button class="btn sm del" onclick="deleteProject('${p.id}')">削除</button>
         <button class="btn sm" onclick="P.openId=null;renderProjList()">閉じる</button>
       </span>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:10.5px;color:#888">担当</span> ${staffChips(p)}
+      ${staffOf(p).length?'':`<button class="btn sm" style="color:#c0392b;border-color:#e8a59c" onclick="openProjEditor('${p.id}',true)">担当を入力する</button>`}
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;margin-top:12px">
       ${row('顧客',txt(p.client)+' '+txt(p.clientTitle||''))}
@@ -2730,8 +2774,8 @@ function deleteProjectDoc(pid,key){
   if(!confirm(`「${d?d.no:''}」をこの案件から削除しますか？`))return;
   p.docs=p.docs.filter(x=>x.key!==key);refreshContractActual(p);putProject(p);renderProjList();
 }
-function openProjEditor(id){
-  const p=id?getProject(id):{client:'',clientTitle:'様',clientZip:'',clientAddr:'',clientTel:'',name:'',site:'',orderDate:todayStr(),start:'',end:'',contract:'',memo:'',status:'見積中'};
+function openProjEditor(id,focusStaff){
+  const p=id?getProject(id):{staff:[],client:'',clientTitle:'様',clientZip:'',clientAddr:'',clientTel:'',name:'',site:'',orderDate:todayStr(),start:'',end:'',contract:'',memo:'',status:'見積中'};
   const f=(k,l,ph,type='text',full)=>`<div class="field${full?' full':''}"><label>${l}</label><input id="pe-${k}" type="${type}" value="${esc(String(p[k]??''))}" placeholder="${ph||''}"/></div>`;
   document.getElementById('pj-modal').innerHTML=`
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
@@ -2745,6 +2789,12 @@ function openProjEditor(id){
         ${id?f('start','着工日','','date'):''}
         ${f('end','完工予定日','','date')}
         ${id?'':`<div class="field full" style="font-size:11px;color:#888;margin-top:-4px">着工日は、決まったら案件の「✏ 編集」から入力できます。</div>`}
+        <div class="field full"><label>担当 <span style="font-size:10px;color:#aaa">　複数人入力できます（名前を入れて Enter か「追加」）</span></label>
+          <div id="pe-staff-chips" style="min-height:22px;margin-bottom:5px"></div>
+          <div style="display:flex;gap:6px"><input id="pe-staff-in" placeholder="例：山田 太郎" style="flex:1" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();peStaffFromInput();}"/>
+            <button type="button" class="btn" onclick="peStaffFromInput()">追加</button></div>
+          <div id="pe-staff-sg" style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+        </div>
       </div>
       <div class="sec-title">▸ 顧客</div>
       <div class="form-grid">
@@ -2775,7 +2825,8 @@ function openProjEditor(id){
       </div>
     </div>
   </div>`;
-  setTimeout(()=>{const e=document.getElementById('pe-name');if(e)e.focus();},30);
+  PE.staff=staffOf(p).slice();peStaffRender();
+  setTimeout(()=>{const e=document.getElementById(focusStaff?'pe-staff-in':'pe-name');if(e){e.focus();if(focusStaff)e.scrollIntoView({block:'center'});}},30);
 }
 function fillFromCustomer(id){
   const c=getCustomers().find(x=>x.id===id);if(!c)return;
@@ -2789,8 +2840,9 @@ function saveProjEditor(id){
   if(!v('client')){alert('顧客名を入力してください');return;}
   if(v('start')&&v('end')&&v('end')<v('start')){alert('完工予定日は着工日以降の日付にしてください');return;}
   if(v('orderDate')&&v('end')&&v('end')<v('orderDate')){alert('完工予定日は受注日以降の日付にしてください');return;}
+  peStaffFromInput();   // 入力欄に残っている名前も担当に入れる
   const p=id?getProject(id):{id:'p'+Date.now(),no:newProjectNo(),docs:[],createdAt:Date.now()};
-  Object.assign(p,{name:v('name'),site:v('site'),orderDate:v('orderDate'),start:id?v('start'):(p.start||''),end:v('end'),client:v('client'),clientTitle:v('clientTitle')||'様',
+  Object.assign(p,{staff:PE.staff.slice(),name:v('name'),site:v('site'),orderDate:v('orderDate'),start:id?v('start'):(p.start||''),end:v('end'),client:v('client'),clientTitle:v('clientTitle')||'様',
     clientZip:v('clientZip'),clientAddr:v('clientAddr'),clientTel:v('clientTel'),contract:parseYen(v('contract')),status:v('status')||'見積中',memo:document.getElementById('pe-memo').value,
     customerId:v('customerId')||p.customerId||''});
   // 顧客マスタに登録・更新
@@ -3210,12 +3262,12 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04i';
+const APP_VERSION='2026.10.04j';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
   mtime:{},issuer:null,issuerMtime:0,queue:Promise.resolve(),pending:0,err:'',dirty:false,remoteVer:'',busy:false,timer:null,lastSync:0,
-  backend:'folder',sb:null,user:null,pendingIds:new Set()};
+  backend:'folder',sb:null,user:null,pendingIds:new Set(),members:{}};
 const SH_COLLS=['projects','customers','received','files'];
 const shared=()=>SH.mode==='folder';
 const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
@@ -3562,7 +3614,9 @@ function cloudApplyAll(rows){
   let changed=false;const seen={projects:new Set(),customers:new Set(),received:new Set(),files:new Set()};
   let issuer=null,ver='';
   for(const r of rows){
-    if(r.coll==='settings'){if(r.id==='issuer')issuer=r.data;if(r.id==='app')ver=(r.data||{}).version||'';continue;}
+    if(r.coll==='settings'){if(r.id==='issuer')issuer=r.data;if(r.id==='app')ver=(r.data||{}).version||'';
+      if(r.id.startsWith('member:')){const uid=r.id.slice(7);if(JSON.stringify(SH.members[uid])!==JSON.stringify(r.data)){SH.members[uid]=r.data;changed=true;}}
+      continue;}
     if(!SH.cache[r.coll])continue;
     seen[r.coll].add(r.id);
     const k=r.coll+'/'+r.id;
@@ -3582,6 +3636,26 @@ async function cloudStart(){
   showCloudOverlay('loading','データを読み込んでいます…');
   try{cloudApplyAll(await cloudSelectAll());}
   catch(e){showCloudOverlay('error','データを読み込めませんでした。\n'+(e.message||e));return;}
+  // はじめてログインしたアカウントは、苗字と名前を登録してから使う
+  if(!myMember()){showCloudOverlay('name');return;}
+  cloudStart2();
+}
+function myMember(){const m=SH.user&&SH.members[SH.user.id];return m&&m.lastName&&m.firstName?m:null;}
+function myName(){const m=myMember();return m?m.lastName+' '+m.firstName:'';}
+async function cloudSaveName(){
+  const ln=document.getElementById('cl-last').value.replace(/\s+/g,'').trim(),fn=document.getElementById('cl-first').value.replace(/\s+/g,'').trim();
+  const msg=document.getElementById('cl-msg');
+  if(!ln||!fn){msg.textContent='苗字と名前の両方を入力してください';return;}
+  msg.style.color='#666';msg.textContent='保存中…';
+  const first=!SH.started;
+  const rec={uid:SH.user.id,email:SH.user.email||'',lastName:ln,firstName:fn,updatedAt:Date.now()};
+  try{await cloudUpsert('settings','member:'+SH.user.id,rec);}
+  catch(e){msg.style.color='#c0392b';msg.textContent='保存できませんでした：'+(e.message||e);return;}
+  SH.members[SH.user.id]=rec;
+  if(first)cloudStart2();else{hideConnectOverlay();shStatus();if(S.mainTab==='proj')renderProjects();}
+}
+function cloudStart2(){
+  SH.started=true;
   SH.mode='folder';   // 共有モード（保存先はクラウド）
   // 相手の変更をすぐ受け取る
   try{
@@ -3605,6 +3679,7 @@ function cloudOnChange(p){
   if(c==='settings'){
     if(id==='issuer'){SH.issuer=p.eventType==='DELETE'?null:row.data;}
     if(id==='app'&&row.data){SH.remoteVer=row.data.version||'';shVersionCheck();}
+    if(id.startsWith('member:')){const uid=id.slice(7);if(p.eventType==='DELETE')delete SH.members[uid];else SH.members[uid]=row.data;}
     SH.lastCheck=Date.now();onSharedChange();shStatus();return;
   }
   if(!SH.cache[c]||SH.pendingIds.has(k))return;
@@ -3656,7 +3731,7 @@ function cloudStatus(el){
   const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#1e4a32">✓ 保存済み</span>';
   const t=SH.lastCheck?new Date(SH.lastCheck):null;
   const hm=t?`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`:'—';
-  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">☁ ${esc(SH.user&&SH.user.email||'')}<br>
+  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">👤 <b>${esc(myName()||'（名前未登録）')}</b> <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>☁ ${esc(SH.user&&SH.user.email||'')}<br>
       ${st}　<span style="color:#888">案件 ${SH.cache.projects.size}件</span><br>
       <span style="color:#999">${SH.live?'● リアルタイム反映中':'最終確認 '+hm}</span></div>
     ${SH.lastMsg?`<div style="font-size:10.5px;color:#1e4a32;background:#eef5f0;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
@@ -3670,7 +3745,20 @@ function showCloudOverlay(kind,text){
     <div style="background:#fff;border:1px solid #d5e3d9;border-radius:12px;padding:26px 28px;width:380px;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.06)">
       <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${esc(ISSUER.name||'')}</div>
       <div style="font-size:11px;color:#999;margin-bottom:16px">案件管理・帳票作成ツール</div>${inner}</div></div>`;
-  if(kind==='login'){
+  if(kind==='name'){
+    const m=(SH.user&&SH.members[SH.user.id])||{};const again=!!SH.started;
+    el.innerHTML=box(`
+      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">${again?'お名前の変更':'お名前の登録'}</div>
+      <div style="font-size:11.5px;color:#777;line-height:1.6;margin-bottom:12px">${again?'':'はじめてのログインです。'}このアカウント（${esc(SH.user&&SH.user.email||'')}）を使う人の苗字と名前を入力してください。案件の担当の候補に出ます。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div class="field"><label>苗字 <span style="color:#c0392b">*</span></label><input id="cl-last" value="${esc(m.lastName||'')}" placeholder="例：山田" style="font-size:16px"/></div>
+        <div class="field"><label>名前 <span style="color:#c0392b">*</span></label><input id="cl-first" value="${esc(m.firstName||'')}" placeholder="例：太郎" style="font-size:16px" onkeydown="if(event.key==='Enter'&&!event.isComposing)cloudSaveName()"/></div>
+      </div>
+      <button class="btn primary" style="width:100%;padding:10px;font-size:14px" onclick="cloudSaveName()">${again?'保存':'登録してはじめる'}</button>
+      ${again?'<button class="btn" style="width:100%;margin-top:6px" onclick="hideConnectOverlay()">キャンセル</button>':''}
+      <div id="cl-msg" style="font-size:12px;color:#c0392b;margin-top:10px;min-height:16px"></div>`);
+    setTimeout(()=>{const e=document.getElementById('cl-last');if(e)e.focus();},50);
+  } else if(kind==='login'){
     el.innerHTML=box(`
       <div class="field" style="margin-bottom:10px"><label>メールアドレス</label><input id="cl-email" type="email" autocomplete="username" style="font-size:16px"/></div>
       <div class="field" style="margin-bottom:14px"><label>パスワード</label><input id="cl-pass" type="password" autocomplete="current-password" style="font-size:16px" onkeydown="if(event.key==='Enter')cloudLogin()"/></div>
