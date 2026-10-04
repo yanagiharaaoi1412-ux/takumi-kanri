@@ -941,66 +941,66 @@ function estimateLandscape(totals){
 
   const NV='#1e4a32';
   const cover=`
-<div class="doc-land">
-  <!-- 右上：番号・日付 -->
-  <div style="display:flex;justify-content:flex-end">
-    <div style="display:grid;grid-template-columns:auto auto;column-gap:10px;row-gap:2px;font-size:11.5px;line-height:1.6;color:#222">
-      <span style="text-align-last:justify;width:5.5em;color:#555">見積書番号</span><span>${txt(F.no)}</span>
-      <span style="text-align-last:justify;width:5.5em;color:#555">発行日</span><span>${w.era}${w.y}年${w.m}月${w.d}日</span>
+<div class="doc-land"><div style="display:flex;flex-direction:column;height:100%">
+  <!-- 上段：タイトル（中央）と 番号・発行日（右） -->
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start">
+    <div></div>
+    <div class="land-title" style="margin-top:4mm">御 見 積 書</div>
+    <div style="display:flex;justify-content:flex-end">
+      <div style="display:grid;grid-template-columns:auto auto;column-gap:10px;row-gap:2px;font-size:11.5px;line-height:1.6;color:#222">
+        <span style="text-align-last:justify;width:5.5em;color:#555">見積書番号</span><span>${txt(F.no)}</span>
+        <span style="text-align-last:justify;width:5.5em;color:#555">発行日</span><span>${w.era}${w.y}年${w.m}月${w.d}日</span>
+      </div>
     </div>
   </div>
 
-  <div class="land-title" style="margin-top:-6px">御 見 積 書</div>
-
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:14px">
-    <!-- 宛名 -->
-    <div style="width:118mm;margin-top:18px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid ${NV};padding:0 14px 5px 6px;font-size:22px;font-weight:700">
+  <!-- 宛名（左）と 発行者（右） -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:9mm">
+    <div style="width:125mm;padding-bottom:4mm">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid ${NV};padding:0 14px 6px 6px;font-size:22px;font-weight:700">
         <span>${recipient||'&nbsp;'}</span><span>${title}</span>
       </div>
-      ${F.clientAddr?`<div style="font-size:11px;color:#555;margin-top:6px;padding-left:6px">${txt(F.clientAddr)}</div>`:''}
+      ${F.clientAddr?`<div style="font-size:11.5px;color:#555;margin-top:7px;padding-left:6px">${txt(F.clientAddr)}</div>`:''}
       ${F.dept||F.contactName?`<div style="font-size:12px;margin-top:4px;padding-left:6px">${txt(F.dept)}${F.dept&&F.contactName?'　':''}${F.contactName?txt(F.contactName)+'　様':''}</div>`:''}
     </div>
-    <!-- 発行者（他の帳票と同じ：ロゴ＋社名 横並び） -->
-    <div style="position:relative;width:88mm;font-size:11.5px;line-height:1.45;color:#222">
+    <div style="position:relative;width:92mm;font-size:11.5px;line-height:1.5;color:#222">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;white-space:nowrap">
         ${ISSUER.logo?`<img src="${ISSUER.logo}" style="height:52px;display:block;flex-shrink:0"/>`:''}
         <div style="font-weight:700;font-size:20px;letter-spacing:.04em;color:#1a1a1a">${txt(ISSUER.name)}</div>
       </div>
       <div style="padding-left:14mm">
-      <div>${ISSUER.zip}</div>
-      <div>${txt(ISSUER.addr.replace('　',' '))}</div>
-      <div>TEL ${ISSUER.tel}</div>
-      ${ISSUER.fax?`<div>FAX ${ISSUER.fax}</div>`:''}
-      ${ISSUER.reg?`<div style="margin-top:3px">登録番号 ${ISSUER.reg}</div>`:''}
+        <div>${ISSUER.zip}</div>
+        <div>${txt(ISSUER.addr.replace('　',' '))}</div>
+        <div>TEL ${ISSUER.tel}</div>
+        ${ISSUER.fax?`<div>FAX ${ISSUER.fax}</div>`:''}
+        ${ISSUER.reg?`<div>登録番号 ${ISSUER.reg}</div>`:''}
       </div>
-      ${ISSUER.stamp?`<img src="${ISSUER.stamp}" style="position:absolute;right:0;bottom:-4px;width:24mm;opacity:.95"/>`:''}
+      ${ISSUER.stamp?`<img src="${ISSUER.stamp}" style="position:absolute;right:0;bottom:-2mm;width:23mm;opacity:.95"/>`:''}
     </div>
   </div>
 
-  <!-- 御見積金額 -->
-  <div style="margin:18px 0 0 62mm;width:125mm">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid ${NV};border-bottom:2px solid ${NV};padding:10px 8px 8px">
-      <span style="font-size:18px;font-weight:700">御見積金額</span>
-      <span style="font-size:26px;font-weight:900">¥${fmt(total)}-</span>
-    </div>
-    <div style="text-align:right;font-size:11.5px;margin-top:6px;color:#333">
-      ${isExc?`上記金額には消費税等（¥${fmt(tax)}）が含まれています。`:'上記金額には消費税等含まれています。'}
+  <!-- 中央：御見積金額・工事情報（残りの高さの真ん中に置く） -->
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-bottom:6mm">
+    <div style="width:170mm">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid ${NV};border-bottom:2px solid ${NV};padding:12px 14px 10px">
+        <span style="font-size:19px;font-weight:700;letter-spacing:.1em">御見積金額</span>
+        <span style="font-size:30px;font-weight:900">¥${fmt(total)}-</span>
+      </div>
+      <div style="text-align:right;font-size:11.5px;margin-top:6px;color:#333">
+        ${isExc?`上記金額には消費税等（¥${fmt(tax)}）が含まれています。`:'上記金額には消費税等が含まれています。'}
+      </div>
+      ${(()=>{const items=[['工事名',txt(F.subject)],['工事場所',txt(F.site)],['有効期限',F.dueDate?warekiStr(F.dueDate)+'まで':'']];
+        if(noteFirst)items.push(['備考',txt(noteFirst)]);
+        return `<table style="margin-top:7mm;width:100%;border-collapse:collapse;font-size:13.5px;border-top:1.5px solid ${NV};border-bottom:1.5px solid ${NV}">
+          ${items.map(([l,v],i)=>`<tr>
+            <th style="width:30mm;background:#eef4f0;color:${NV};font-weight:700;text-align:center;letter-spacing:.2em;padding:10px 4px;${i?'border-top:1px solid #cfdcd3;':''}white-space:nowrap">${l}</th>
+            <td style="padding:10px 14px;line-height:1.5;${i?'border-top:1px solid #cfdcd3;':''}">${v||'&nbsp;'}</td></tr>`).join('')}
+        </table>`;})()}
+      <div style="margin-top:8mm;text-align:center;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
     </div>
   </div>
-
-  <!-- 工事情報（御見積金額と同じ幅・位置にそろえた表） -->
-  ${(()=>{const items=[['工事名',txt(F.subject)],['工事場所',txt(F.site)],['有効期限',F.dueDate?warekiStr(F.dueDate)+'まで':'']];
-    if(noteFirst)items.push(['備考',txt(noteFirst)]);
-    return `<table style="margin:16px 0 0 62mm;width:125mm;border-collapse:collapse;font-size:13px;border-top:1.5px solid ${NV};border-bottom:1.5px solid ${NV}">
-      ${items.map(([l,v],i)=>`<tr>
-        <th style="width:27mm;background:#eef4f0;color:${NV};font-weight:700;text-align:center;letter-spacing:.2em;padding:9px 4px;${i?'border-top:1px solid #cfdcd3;':''}white-space:nowrap">${l}</th>
-        <td style="padding:9px 12px;line-height:1.5;${i?'border-top:1px solid #cfdcd3;':''}">${v||'&nbsp;'}</td></tr>`).join('')}
-    </table>`;})()}
-
-  <div style="margin:26px 0 0;text-align:center;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
   ${hasLines?`<div style="position:absolute;right:20mm;bottom:10mm;font-size:10.5px;color:#555">（内訳は次頁）</div>`:''}
-</div>`;
+</div></div>`;
 
   if(!hasLines) return cover;
 
@@ -3664,7 +3664,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04w';
+const APP_VERSION='2026.10.04x';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
