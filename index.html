@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#4b311d">
+<meta name="theme-color" content="#1e4a32">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>案件管理・帳票作成システム</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -14,20 +14,20 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 .sb{background:#fff;border-right:1px solid #e0e0e0;padding:16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
 .sb-lbl{font-size:10px;font-weight:600;color:#888;letter-spacing:.1em;margin-bottom:8px}
 .doc-btn{display:block;width:100%;text-align:left;padding:8px 10px;border:none;background:transparent;cursor:pointer;border-radius:6px;font-size:12px;color:#555;transition:.15s;border:1px solid transparent}
-.doc-btn:hover{background:#f5f1ee;color:#4b311d}
-.doc-btn.active{background:#4b311d;color:#fff;font-weight:600}
+.doc-btn:hover{background:#eef5f0;color:#1e4a32}
+.doc-btn.active{background:#1e4a32;color:#fff;font-weight:600}
 .doc-sub{font-size:10px;opacity:.7;display:block;margin-top:1px}
 .toggle2{display:flex;border:1px solid #ddd;border-radius:6px;overflow:hidden}
 .t2-btn{flex:1;padding:6px 4px;font-size:12px;border:none;background:transparent;cursor:pointer;color:#666;transition:.15s}
-.t2-btn.active{background:#4b311d;color:#fff}
+.t2-btn.active{background:#1e4a32;color:#fff}
 .pat-btns{display:flex;gap:6px}
 .pat-btn{width:36px;height:36px;border:1px solid #ddd;border-radius:6px;font-size:15px;background:transparent;cursor:pointer;color:#666;transition:.15s}
-.pat-btn.active{background:#4b311d;color:#fff;border-color:#4b311d}
+.pat-btn.active{background:#1e4a32;color:#fff;border-color:#1e4a32}
 .main-area{display:flex;flex-direction:column;overflow:hidden}
 .main-tabs{display:flex;background:#fff;border-bottom:1px solid #e0e0e0;padding:0 16px;align-items:center;gap:4px;flex-shrink:0}
-.doc-badge{font-size:11px;padding:3px 10px;background:#f0eae6;color:#4b311d;border-radius:999px;margin-right:8px;font-weight:600}
+.doc-badge{font-size:11px;padding:3px 10px;background:#e6f0e9;color:#1e4a32;border-radius:999px;margin-right:8px;font-weight:600}
 .m-tab{padding:12px 14px;font-size:13px;border:none;background:transparent;cursor:pointer;color:#888;border-bottom:2px solid transparent;transition:.15s}
-.m-tab.active{color:#4b311d;border-bottom-color:#4b311d;font-weight:600}
+.m-tab.active{color:#1e4a32;border-bottom-color:#1e4a32;font-weight:600}
 .main-content{flex:1;overflow-y:auto}
 .form-panel{padding:16px}
 .sec-title{font-size:11px;font-weight:600;color:#888;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid #eee;letter-spacing:.05em}
@@ -35,30 +35,30 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:11px;color:#666}
 .field input,.field select,.field textarea{width:100%;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:5px;outline:none;transition:.15s;font-family:inherit}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#4b311d}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#1e4a32}
 .field textarea{height:56px;resize:vertical}
 .field.full{grid-column:1/-1}
 .line-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
 .line-tbl th{font-size:10px;color:#666;font-weight:600;padding:5px 5px;border-bottom:1px solid #eee;text-align:left}
 .line-tbl td{padding:3px 3px;vertical-align:middle}
 .line-tbl td input{font-size:12px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;width:100%;font-family:inherit}
-.line-tbl td input:focus{outline:none;border-color:#4b311d}
+.line-tbl td input:focus{outline:none;border-color:#1e4a32}
 .neg-row td,.neg-row td input{color:#c0392b!important;font-weight:600}
 .btn{padding:6px 14px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#333;transition:.15s;font-family:inherit}
 .btn:hover{background:#f5f5f5}
-.btn.primary{background:#4b311d;color:#fff;border-color:#4b311d;font-weight:600}
-.btn.primary:hover{background:#3b2515}
+.btn.primary{background:#1e4a32;color:#fff;border-color:#1e4a32;font-weight:600}
+.btn.primary:hover{background:#163a27}
 .btn.sm{padding:3px 8px;font-size:11px}
 .btn.del{color:#c0392b;border-color:#e0b0aa}
 .inst-s{display:none}
 .ldrag{cursor:grab;color:#aaa;text-align:center;font-size:15px;user-select:none;padding:0 2px!important;touch-action:none}
-.ldrag:hover{color:#4b311d}
+.ldrag:hover{color:#1e4a32}
 .btn.lmv{padding:2px 5px;font-size:10px;color:#666;margin-right:1px}
 .btn.lmv:disabled{opacity:.3;cursor:default}
 .line-row.dragging{opacity:.4}
-.line-row.drop-above td{box-shadow:inset 0 2px 0 #4b311d}
-.line-row.drop-below td{box-shadow:inset 0 -2px 0 #4b311d}
-.line-row.moved td{background:#f0eae6;transition:background .6s}
+.line-row.drop-above td{box-shadow:inset 0 2px 0 #1e4a32}
+.line-row.drop-below td{box-shadow:inset 0 -2px 0 #1e4a32}
+.line-row.moved td{background:#e6f0e9;transition:background .6s}
 .btn.del:hover{background:#fff5f5}
 .bar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #e0e0e0;background:#fff;align-items:center;flex-shrink:0}
 .bar-note{font-size:11px;color:#aaa;margin-left:auto}
@@ -101,12 +101,12 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 <style id="land-css">
 .doc-land{background:white;color:#111;width:297mm;height:210mm;padding:12mm 20mm 10mm;margin:0 auto 16px;box-shadow:0 2px 12px rgba(0,0,0,.15);font-family:'Zen Old Mincho','Yu Mincho','YuMincho','Hiragino Mincho ProN','Noto Serif JP','Noto Serif CJK JP','MS PMincho',serif;font-size:14px;line-height:1.5;position:relative;overflow:hidden;page-break-after:always;break-after:page}
 .doc-land:last-child{page-break-after:auto;break-after:auto}
-.land-title{text-align:center;font-weight:900;font-size:30px;letter-spacing:.3em;padding-left:.3em;color:#4b311d}
+.land-title{text-align:center;font-weight:900;font-size:30px;letter-spacing:.3em;padding-left:.3em;color:#1e4a32}
 .land-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.land-tbl th{background:#4b311d;color:#fff;font-weight:700;padding:6px;border:1px solid #4b311d}
+.land-tbl th{background:#1e4a32;color:#fff;font-weight:700;padding:6px;border:1px solid #1e4a32}
 .land-tbl td{border-bottom:0.5px solid #ccc;padding:5px 8px;height:26px}
-.land-tbl tbody tr td:first-child{border-left:1px solid #4b311d}
-.land-tbl tbody tr td:last-child{border-right:1px solid #4b311d}
+.land-tbl tbody tr td:first-child{border-left:1px solid #1e4a32}
+.land-tbl tbody tr td:last-child{border-right:1px solid #1e4a32}
 </style>
 <style>
 /* Print */
@@ -121,7 +121,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
   #panel-preview{display:block!important}
   @page{size:A4;margin:0}
 }
-.staff-chip{display:inline-block;font-size:11.5px;padding:1px 9px;border-radius:999px;background:#f0eae6;color:#4b311d;border:1px solid #dcd1c9;white-space:nowrap;margin:1px 0}
+.staff-chip{display:inline-block;font-size:11.5px;padding:1px 9px;border-radius:999px;background:#e6f0e9;color:#1e4a32;border:1px solid #c9dccf;white-space:nowrap;margin:1px 0}
 .no-staff{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:#fdecea;color:#c0392b;border:1px solid #f3c2bc;font-weight:700;white-space:nowrap}
 .dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .dgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -136,7 +136,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 @media (max-width:480px){.dcard-v{font-size:18px}}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4b311d">
+<meta name="theme-color" content="#1e4a32">
 <link rel="icon" type="image/png" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -149,7 +149,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 <!-- Sidebar（メニュー） -->
 <div class="sb">
   <div>
-    <div id="sb-brand" style="font-weight:700;font-size:14px;color:#4b311d;line-height:1.4;margin-bottom:2px"></div>
+    <div id="sb-brand" style="font-weight:700;font-size:14px;color:#1e4a32;line-height:1.4;margin-bottom:2px"></div>
     <div style="font-size:10px;color:#aaa;letter-spacing:.05em">案件管理・帳票作成システム <span id="app-ver"></span></div>
   </div>
   <div class="sb-menu">
@@ -163,7 +163,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
   <div class="sb-data" style="margin-top:auto">
     <div class="sb-lbl">データ</div>
     <div id="sh-status" style="margin-bottom:10px"></div>
-    <button id="inst-btn" class="btn" style="width:100%;font-size:11px;margin-bottom:6px;display:none;color:#4b311d;border-color:#c0ad9e" onclick="openInstallGuide()">📲 <span class="inst-l">アプリとして入れる</span><span class="inst-s">ホーム画面に追加</span></button>
+    <button id="inst-btn" class="btn" style="width:100%;font-size:11px;margin-bottom:6px;display:none;color:#1e4a32;border-color:#9fbfa9" onclick="openInstallGuide()">📲 <span class="inst-l">アプリとして入れる</span><span class="inst-s">ホーム画面に追加</span></button>
     <button class="btn" style="width:100%;font-size:11px" onclick="exportAll()" title="案件・顧客・自社情報をファイルに保存">⬇ バックアップ</button>
     <label class="btn" style="display:block;text-align:center;width:100%;font-size:11px;margin-top:6px;cursor:pointer" title="バックアップファイルから復元">⬆ 復元<input type="file" accept=".json" style="display:none" onchange="importAll(this)"/></label>
   </div>
@@ -202,9 +202,9 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
     <button class="btn" onclick="doPrint()">🖨 印刷 / PDF保存</button>
     <button class="btn" onclick="confirmIssue()" style="color:#27ae60;border-color:#9fd8b5;font-weight:600">✓ 発行確定</button>
     <button class="btn" onclick="saveDraft()">💾 保存</button>
-    <button class="btn" id="est2inv-btn" onclick="createInvoiceFromEstimate(S.projectId)" style="display:none;color:#4b311d;border-color:#4b311d;font-weight:600">→ この見積から請求書を作成</button>
+    <button class="btn" id="est2inv-btn" onclick="createInvoiceFromEstimate(S.projectId)" style="display:none;color:#1e4a32;border-color:#1e4a32;font-weight:600">→ この見積から請求書を作成</button>
     <button class="btn" onclick="confirmReset()" style="color:#c0392b;border-color:#e0b0aa">🗑 新規作成</button>
-    <span id="autosave-note" style="font-size:11px;color:#4b311d;margin-left:auto;white-space:nowrap"></span>
+    <span id="autosave-note" style="font-size:11px;color:#1e4a32;margin-left:auto;white-space:nowrap"></span>
     <span class="bar-note" style="margin-left:12px">印刷後は「✓ 発行確定」で連番が進みます</span>
   </div>
 </div>
@@ -532,7 +532,7 @@ function updateSubtotalDisplay(){
     const pr=lineProfit(ls,S.taxType);
     const costSum=ls.reduce((a,l)=>a+(l.cost===''||l.cost==null?0:(l.qty===''?0:l.qty||0)*(l.cost||0)),0);
     const taxL=S.taxType==='inc'?'税込':'税抜';
-    pe.innerHTML=(costSum||pr.sales?`仕入合計（${taxL}）<b style="color:#7a6a2a">${fmtY(costSum)}</b>　`:'')+(pr.sales?`粗利（税抜）<b style="color:${pr.profit<0?'#c0392b':'#4b311d'}">${fmtY(pr.profit)}</b>（${pr.rate}%）${pr.missing?`<span style="color:#b86e00">　※仕入単価が未入力の行が${pr.missing}行あります</span>`:''}`:'');
+    pe.innerHTML=(costSum||pr.sales?`仕入合計（${taxL}）<b style="color:#7a6a2a">${fmtY(costSum)}</b>　`:'')+(pr.sales?`粗利（税抜）<b style="color:${pr.profit<0?'#c0392b':'#1e4a32'}">${fmtY(pr.profit)}</b>（${pr.rate}%）${pr.missing?`<span style="color:#b86e00">　※仕入単価が未入力の行が${pr.missing}行あります</span>`:''}`:'');
   }
   if(el){
     if(S.taxType==='inc'){
@@ -549,9 +549,9 @@ function renderForm(){
   let h=``;
   const proj=S.projectId?getProject(S.projectId):null;
   if(proj){
-    h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f5f1ee;border:1px solid #dcd1c9;border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px">
+    h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eef5f0;border:1px solid #c9dccf;border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px">
       <span>📁 ${esc(proj.no)}　<b>${txt(proj.name)}</b>（${txt(proj.client)} ${txt(proj.clientTitle||'')}）</span>
-      ${F.issued?'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#4b311d;color:#fff">発行済</span>':'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#f0f0f0;color:#777">下書き（未発行）</span>'}
+      ${F.issued?'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#1e4a32;color:#fff">発行済</span>':'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#f0f0f0;color:#777">下書き（未発行）</span>'}
       <span style="margin-left:auto;display:flex;gap:6px">
         <button class="btn sm" onclick="backFromEditor()">案件を開く</button>
       </span>
@@ -586,8 +586,8 @@ function renderForm(){
     ${d.id!=='payment'?`<div class="field">
       <label>書類番号 <span style="font-size:10px;color:#aaa">（自動生成）</span></label>`:''}${d.id!=='payment'?`
       <div style="display:flex;align-items:center;gap:6px">
-        <div id="no-display" style="padding:6px 8px;background:#f9f7f5;border:1px solid #e3dbd5;border-radius:6px;font-size:14px;font-weight:700;color:#4b311d;letter-spacing:.05em;flex:1">${esc(F.no)}</div>
-        <input id="no-edit" style="display:none;flex:1;font-size:14px;font-weight:700;color:#4b311d;letter-spacing:.05em;padding:6px 8px;border:1px solid #4b311d;border-radius:6px" value="${esc(F.no)}"/>
+        <div id="no-display" style="padding:6px 8px;background:#f5f9f6;border:1px solid #d5e3d9;border-radius:6px;font-size:14px;font-weight:700;color:#1e4a32;letter-spacing:.05em;flex:1">${esc(F.no)}</div>
+        <input id="no-edit" style="display:none;flex:1;font-size:14px;font-weight:700;color:#1e4a32;letter-spacing:.05em;padding:6px 8px;border:1px solid #1e4a32;border-radius:6px" value="${esc(F.no)}"/>
         <button id="no-edit-btn" class="btn sm" onclick="toggleNoEdit()" style="white-space:nowrap">✏ 変更</button>
       </div>
     </div>`:''}
@@ -656,8 +656,8 @@ function renderForm(){
     <datalist id="unit-list">${unitOptions().map(u=>`<option value="${esc(u)}"></option>`).join('')}</datalist>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
       <button class="btn sm" onclick="addLine()">＋ 行追加</button>
-      <button class="btn sm" onclick="openPasteModal()" style="color:#4b311d;border-color:#4b311d">📋 Excelから貼り付け</button>
-      ${d.id==='estimate'?`<button class="btn sm" onclick="openPdfImport()" style="color:#fff;background:#4b311d;border-color:#4b311d">📄 仕入見積PDFを取り込む</button>`:''}
+      <button class="btn sm" onclick="openPasteModal()" style="color:#1e4a32;border-color:#1e4a32">📋 Excelから貼り付け</button>
+      ${d.id==='estimate'?`<button class="btn sm" onclick="openPdfImport()" style="color:#fff;background:#1e4a32;border-color:#1e4a32">📄 仕入見積PDFを取り込む</button>`:''}
       <span style="font-size:11px;color:#888;margin-left:8px" id="form-subtotal"></span>
       ${d.id==='estimate'?`<span style="font-size:11px;color:#555;margin-left:auto" id="form-profit"></span>`:''}
     </div>
@@ -666,7 +666,7 @@ function renderForm(){
     <div id="paste-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center">
       <div style="background:white;border-radius:8px;padding:24px;width:700px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
         <div style="font-size:14px;font-weight:700;margin-bottom:8px">Excelから貼り付け</div>
-        <div style="background:#f0eae6;border:1px solid #4b311d;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#4b311d">
+        <div style="background:#e6f0e9;border:1px solid #1e4a32;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1e4a32">
           ⚠️ <strong>列の順番を必ず確認してください</strong><br>
           <span style="display:inline-block;margin-top:6px">A列：品名　B列：数量　C列：単位　D列：単価　E列：備考（任意）</span><br>
           <span style="display:inline-block;margin-top:6px;color:#444">
@@ -678,7 +678,7 @@ function renderForm(){
         <div style="overflow-x:auto">
           <table id="paste-grid" style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
-              <tr style="background:#4b311d;color:white">
+              <tr style="background:#1e4a32;color:white">
                 <th style="padding:6px 8px;text-align:left;font-weight:600;width:32%">品名・摘要</th>
                 <th style="padding:6px 8px;text-align:center;font-weight:600;width:10%">数量</th>
                 <th style="padding:6px 8px;text-align:center;font-weight:600;width:10%">単位</th>
@@ -744,7 +744,7 @@ function pat3(d,totals,receiptAmt,docLabel){
   const taxAmt=isExc?(totals?totals.tax:0):Math.round(total*10/110);
   const unitHeader=isExc?'単価(税抜)':'単価(税込)';
   const amtHeader=isExc?'金額(税抜)':'金額(税込)';
-  const NV='#4b311d';
+  const NV='#1e4a32';
   const fmtDate=(s)=>{if(!s)return '';const p=s.split('-');return `${p[0]}年${parseInt(p[1])}月${parseInt(p[2])}日`;};
   const EMPTY_ROWS=Math.max(0,10-lines.length);
 
@@ -768,7 +768,7 @@ function pat3(d,totals,receiptAmt,docLabel){
 
   <!-- タイトル -->
   <div style="text-align:center;margin-bottom:16px">
-    <div style="font-size:33px;font-weight:900;letter-spacing:.3em;color:#4b311d;padding-left:.3em">${
+    <div style="font-size:33px;font-weight:900;letter-spacing:.3em;color:#1e4a32;padding-left:.3em">${
       {invoice:'御 請 求 書', estimate:'御 見 積 書', receipt:'領 収 書', delivery:'納 品 書', order:'発 注 書', payment:'支 払 通 知 書'}[d.id]||d.label
     }</div>
   </div>
@@ -790,15 +790,15 @@ function pat3(d,totals,receiptAmt,docLabel){
     <!-- 左：支払情報 -->
     <div style="flex:0 0 52%;font-size:10.5px;color:#222;padding-top:${d.id==='receipt'?'70px':['estimate','delivery','order','payment'].includes(d.id)?(F.subject?'55px':'90px'):(F.subject?'5px':'42px')}">
       ${(d.id!=='estimate'&&d.id!=='receipt'&&d.id!=='delivery'&&d.id!=='order'&&d.id!=='payment')?`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #4b311d">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #1e4a32">
         <div style="font-weight:700">お支払い方法</div>
         <div>銀行振込</div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #4b311d">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #1e4a32">
         <div style="font-weight:700">お支払い期限</div>
         <div>${fmtDate(F.dueDate)}</div>
       </div>`:''}
-      <div style="padding:10px 4px 8px;border-top:${(d.id==='estimate'||d.id==='receipt'||d.id==='delivery'||d.id==='order'||d.id==='payment')?'2px solid #4b311d':'none'};border-bottom:2px solid #4b311d">
+      <div style="padding:10px 4px 8px;border-top:${(d.id==='estimate'||d.id==='receipt'||d.id==='delivery'||d.id==='order'||d.id==='payment')?'2px solid #1e4a32':'none'};border-bottom:2px solid #1e4a32">
         ${d.id==='receipt'?`<div style="padding-bottom:8px;border-bottom:0.5px solid #ccc;margin-bottom:8px;font-size:11px">
           但し、　<span style="font-weight:700;font-size:13px">${txt(F.butashi||'　　　　　　')}代</span>　として　下記正に領収いたしました。
         </div>`:''}
@@ -944,11 +944,11 @@ function estimateLandscape(totals){
     <div style="display:flex;align-items:flex-end;height:40px">
       <div style="width:100px;text-align-last:justify;letter-spacing:.1em;padding-bottom:9px;font-weight:700">${label}</div>
       <div style="width:28px;text-align:center;padding-bottom:9px">${label?'：':''}</div>
-      <div style="flex:1;max-width:560px;border-bottom:${last?'2px':'1px'} solid #4b311d;padding:0 6px 9px">${val||'&nbsp;'}</div>
+      <div style="flex:1;max-width:560px;border-bottom:${last?'2px':'1px'} solid #1e4a32;padding:0 6px 9px">${val||'&nbsp;'}</div>
     </div>`;
   const noteFirst=(F.note||'').split('\n')[0];
 
-  const NV='#4b311d';
+  const NV='#1e4a32';
   const cover=`
 <div class="doc-land"><div style="display:flex;flex-direction:column;height:100%">
   <!-- 上段：タイトル（中央）と 番号・発行日（右） -->
@@ -1002,8 +1002,8 @@ function estimateLandscape(totals){
         if(noteFirst)items.push(['備考',txt(noteFirst)]);
         return `<table style="margin-top:7mm;width:100%;border-collapse:collapse;font-size:13.5px;border-top:1.5px solid ${NV};border-bottom:1.5px solid ${NV}">
           ${items.map(([l,v],i)=>`<tr>
-            <th style="width:30mm;background:#f4f1ee;color:${NV};font-weight:700;text-align:center;letter-spacing:.2em;padding:10px 4px;${i?'border-top:1px solid #dcd5cf;':''}white-space:nowrap">${l}</th>
-            <td style="padding:10px 14px;line-height:1.5;${i?'border-top:1px solid #dcd5cf;':''}">${v||'&nbsp;'}</td></tr>`).join('')}
+            <th style="width:30mm;background:#eef4f0;color:${NV};font-weight:700;text-align:center;letter-spacing:.2em;padding:10px 4px;${i?'border-top:1px solid #cfdcd3;':''}white-space:nowrap">${l}</th>
+            <td style="padding:10px 14px;line-height:1.5;${i?'border-top:1px solid #cfdcd3;':''}">${v||'&nbsp;'}</td></tr>`).join('')}
         </table>`;})()}
       <div style="margin-top:8mm;text-align:center;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
     </div>
@@ -1941,13 +1941,13 @@ function openPdfImport(){
   host.innerHTML=`<div class="imp-back" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:980px;max-width:96vw;max-height:92vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:15px;font-weight:700;color:#4b311d">仕入見積PDFの取り込み</div>
+        <div style="font-size:15px;font-weight:700;color:#1e4a32">仕入見積PDFの取り込み</div>
         <button class="btn sm" style="margin-left:auto" onclick="closePdfImport()">閉じる</button>
       </div>
       <div style="font-size:11.5px;color:#666;margin:6px 0 12px">仕入れ先の見積書（PDF・写真）を選ぶか、メールなどの文章を貼り付けると、明細を読み取ります。明細がない書類は合計金額を1行で読み取ります。品目ごとに掛け率（または販売単価）を決めて、見積書に取り込めます。</div>
       <label class="btn primary" style="cursor:pointer">📄 PDF・写真を選ぶ<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="IMP.storedId=null;readQuotePdf(this)"/></label>
       <button class="btn" style="margin-left:6px" onclick="const b=document.getElementById('imp-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
-      <div style="font-size:11px;color:#4b311d;margin-top:6px">💡 スクショは、撮ったあとこの画面で <b>Ctrl＋V</b>（貼り付け）を押すだけで読み取れます</div>
+      <div style="font-size:11px;color:#1e4a32;margin-top:6px">💡 スクショは、撮ったあとこの画面で <b>Ctrl＋V</b>（貼り付け）を押すだけで読み取れます</div>
       ${S.projectId?`<label style="font-size:12px;margin-left:10px"><input type="checkbox" id="imp-keep" checked/> 選んだファイルをこの案件の「もらった書類」に保存する</label>`:''}
       <div id="imp-paste" style="display:none;margin-top:10px">
         <textarea id="imp-text" placeholder="メールやLINEの見積もりの文章を、ここに貼り付けてください&#10;例）玄関ドア交換　1式　380,000円&#10;　　取付工事　45,000円" style="width:100%;height:110px;font-size:12px;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea>
@@ -1993,7 +1993,7 @@ async function readQuotePdf(input){
 }
 async function readQuoteFile(file){
   const st=document.getElementById('imp-status');
-  const keepEl=document.getElementById('imp-keep');if(keepEl&&IMP.storedId)keepEl.parentNode.innerHTML='<span style="color:#4b311d">✓ このファイルは案件に保存されています</span>';
+  const keepEl=document.getElementById('imp-keep');if(keepEl&&IMP.storedId)keepEl.parentNode.innerHTML='<span style="color:#1e4a32">✓ このファイルは案件に保存されています</span>';
   st.textContent='読み取り中…';
   try{
     const isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
@@ -2081,7 +2081,7 @@ function renderImpTable(){
   const estL=S.taxType==='inc'?'税込':'税抜';
   const inp=(i,k,v,w,al)=>`<input value="${esc(String(v??''))}" oninput="impEdit(${i},'${k}',this.value)" style="width:${w};font-size:12px;padding:3px 5px;border:1px solid #ddd;border-radius:4px;text-align:${al||'left'};font-family:inherit"/>`;
   body.innerHTML=`
-  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0 8px;padding:10px 12px;background:#f9f7f5;border:1px solid #e3dbd5;border-radius:8px;font-size:12px">
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0 8px;padding:10px 12px;background:#f5f9f6;border:1px solid #d5e3d9;border-radius:8px;font-size:12px">
     <span>仕入見積の金額は
       <select onchange="IMP.basis=this.value;IMP.rows.forEach(impRecalc);renderImpTable()" style="font-size:12px">
         <option value="exc"${IMP.basis==='exc'?' selected':''}>税抜</option><option value="inc"${IMP.basis==='inc'?' selected':''}>税込</option></select></span>
@@ -2164,7 +2164,7 @@ function impSummary(){
   const sale=lines.reduce((a,l)=>a+(l.qty||0)*(l.unitPrice||0),0);
   const pr=lineProfit(lines.filter(l=>l.unitPrice!==''),S.taxType);
   const noPrice=on.filter(r=>r.price==='').length;
-  el.innerHTML=`取り込む行：<b>${on.length}</b>　仕入合計：${fmtY(cost)}　販売合計：<b>${fmtY(sale)}</b>（${S.taxType==='inc'?'税込':'税抜'}）　粗利（税抜）：<b style="color:${pr.profit<0?'#c0392b':'#4b311d'}">${fmtY(pr.profit)}</b>${pr.sales?`（${pr.rate}%）`:''}
+  el.innerHTML=`取り込む行：<b>${on.length}</b>　仕入合計：${fmtY(cost)}　販売合計：<b>${fmtY(sale)}</b>（${S.taxType==='inc'?'税込':'税抜'}）　粗利（税抜）：<b style="color:${pr.profit<0?'#c0392b':'#1e4a32'}">${fmtY(pr.profit)}</b>${pr.sales?`（${pr.rate}%）`:''}
     ${noPrice?`<span style="color:#b86e00">　※販売単価が未入力：${noPrice}行</span>`:''}`;
 }
 function importQuoteLines(){
@@ -2243,15 +2243,15 @@ async function renderProjFiles(pid){
       <span style="font-size:11px;color:#666;font-weight:600">もらった書類（見積書・請求書など）（${list.length}件）</span>
       <label class="btn sm" style="margin-left:auto;cursor:pointer">＋ ファイルを追加<input type="file" multiple accept="application/pdf,.pdf,image/*" style="display:none" onchange="addProjFiles('${pid}',this)"/></label>
     </div>
-    <div id="pj-drop" ondragover="event.preventDefault();this.style.background='#f5f1ee'" ondragleave="this.style.background=''" ondrop="event.preventDefault();this.style.background='';addProjFiles('${pid}',{files:event.dataTransfer.files,value:''})"
-      style="border:1px dashed #d8d3cf;border-radius:6px;padding:${list.length?'2px 6px':'14px'};${list.length?'':'text-align:center;color:#aaa;font-size:12px'}">
+    <div id="pj-drop" ondragover="event.preventDefault();this.style.background='#eef5f0'" ondragleave="this.style.background=''" ondrop="event.preventDefault();this.style.background='';addProjFiles('${pid}',{files:event.dataTransfer.files,value:''})"
+      style="border:1px dashed #cfd8d2;border-radius:6px;padding:${list.length?'2px 6px':'14px'};${list.length?'':'text-align:center;color:#aaa;font-size:12px'}">
       ${list.length?`<table style="width:100%;border-collapse:collapse;font-size:12px">${list.map(f=>`<tr style="border-bottom:1px solid #eee">
         <td style="padding:6px 4px;width:80px;color:#777">${fmtDT(f.addedAt)}</td>
-        <td style="padding:6px 4px"><a href="#" onclick="openProjFile('${f.id}');return false" style="color:#4b311d">📄 ${esc(f.name)}</a> <span style="color:#aaa;font-size:10.5px">${fmtSize(f.size)}</span></td>
+        <td style="padding:6px 4px"><a href="#" onclick="openProjFile('${f.id}');return false" style="color:#1e4a32">📄 ${esc(f.name)}</a> <span style="color:#aaa;font-size:10.5px">${fmtSize(f.size)}</span></td>
         <td style="padding:6px 4px;width:190px"><input value="${esc(f.vendor||'')}" placeholder="仕入れ先" onchange="updProjFile('${f.id}',{vendor:this.value.trim()})"
           style="width:100%;font-size:12px;padding:3px 6px;border:1px solid #e3e3e3;border-radius:4px;font-family:inherit"/></td>
         <td style="padding:6px 4px;text-align:right;white-space:nowrap">
-          ${/pdf|image/i.test(f.type)||/\.(pdf|jpe?g|png|heic|webp)$/i.test(f.name)?`<button class="btn sm" style="color:#4b311d;border-color:#4b311d" onclick="importProjFileToEstimate('${pid}','${f.id}')" title="見積書を開いて、このPDFの明細を取り込む">→ 見積書に取り込む</button>`:''}
+          ${/pdf|image/i.test(f.type)||/\.(pdf|jpe?g|png|heic|webp)$/i.test(f.name)?`<button class="btn sm" style="color:#1e4a32;border-color:#1e4a32" onclick="importProjFileToEstimate('${pid}','${f.id}')" title="見積書を開いて、このPDFの明細を取り込む">→ 見積書に取り込む</button>`:''}
           <button class="btn sm" onclick="downloadProjFile('${f.id}')" title="パソコンに保存">⬇</button>
           <button class="btn sm del" onclick="deleteProjFile('${pid}','${f.id}')">×</button>
         </td></tr>`).join('')}</table>`
@@ -2349,7 +2349,7 @@ function renderEnvModal(){
   host.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:10px;padding:18px 20px;width:1000px;max-width:96vw;max-height:94vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="font-size:15px;font-weight:700;color:#4b311d">封筒の宛名印刷</div>
+      <div style="font-size:15px;font-weight:700;color:#1e4a32">封筒の宛名印刷</div>
       <span style="font-size:11px;color:#888">${ENVD.fromMaster?'宛先は顧客マスタの「封筒に記載する宛先」から入れています（空欄の項目は顧客情報と同じ）':'顧客マスタに登録がないため、案件の顧客情報を入れています'}</span>
       <button class="btn sm" style="margin-left:auto" onclick="document.getElementById('imp-modal').innerHTML=''">閉じる</button>
     </div>
@@ -2363,7 +2363,7 @@ function renderEnvModal(){
           <div class="field"><label>〇〇在中（赤字の印）</label>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               ${['請求書在中','見積書在中',''].map(v=>`<button type="button" class="btn sm" onclick="ENVD.zaichu='${v}';renderEnvModal()"
-                style="${ENVD.zaichu===v?'background:#4b311d;color:#fff;border-color:#4b311d;font-weight:600':''}">${v||'なし'}</button>`).join('')}
+                style="${ENVD.zaichu===v?'background:#1e4a32;color:#fff;border-color:#1e4a32;font-weight:600':''}">${v||'なし'}</button>`).join('')}
             </div></div>
           ${f('addr1','住所','例：北九州市八幡西区星が丘4丁目9－11')}
           ${f('addr2','住所2（建物名など）','')}
@@ -2511,7 +2511,7 @@ function openPastImport(){
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:960px;max-width:96vw;max-height:92vh;overflow:auto">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:15px;font-weight:700;color:#4b311d">過去の見積書から案件を作る</div>
+        <div style="font-size:15px;font-weight:700;color:#1e4a32">過去の見積書から案件を作る</div>
         <button class="btn sm" style="margin-left:auto" onclick="document.getElementById('pj-modal').innerHTML=''">閉じる</button>
       </div>
       <div style="font-size:11.5px;color:#666;margin:6px 0 12px">このシステムを使う前に作った見積書（PDF・写真）を選ぶと、宛先・工事名・工事場所・見積番号・発行日・明細を読み取り、1ファイルにつき1つの案件として登録します（見積書は「発行済」、番号もそのまま）。複数まとめて選べます。</div>
@@ -2577,7 +2577,7 @@ function renderPastTable(){
   box.innerHTML=PAST.items.map((it,i)=>{
     if(it.error)return `<div style="border:1px solid #f0c8c8;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#c0392b">📄 ${esc(it.file.name)}：読み取れませんでした（${esc(it.error)}）</div>`;
     const tot=pastTotal(it);const ok=it.totalPdf===''||it.totalPdf===tot;const dup=pastDup(it);
-    return `<div style="border:1px solid ${it.on?'#dcd1c9':'#e5e5e5'};border-radius:8px;padding:10px 12px;margin-top:10px;${it.on?'':'opacity:.5'}">
+    return `<div style="border:1px solid ${it.on?'#c9dccf':'#e5e5e5'};border-radius:8px;padding:10px 12px;margin-top:10px;${it.on?'':'opacity:.5'}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <label><input type="checkbox" ${it.on?'checked':''} onchange="PAST.items[${i}].on=this.checked;renderPastTable()"/> <b style="font-size:12.5px">📄 ${esc(it.file.name)}</b></label>
         ${it.ocr?'<span style="font-size:10.5px;color:#b86e00">画像から読み取り（要確認）</span>':''}
@@ -2594,7 +2594,7 @@ function renderPastTable(){
         <div>金額の表示<br><select onchange="PAST.items[${i}].inc=this.value==='inc';renderPastTable()" style="font-size:12px;padding:3px"><option value="exc"${!it.inc?' selected':''}>税抜</option><option value="inc"${it.inc?' selected':''}>税込</option></select></div>
       </div>
       <details style="margin-top:8px"><summary style="font-size:12px;cursor:pointer">明細 ${it.lines.length}行　合計（税込）<b>${fmtY(tot)}</b>
-        ${it.totalPdf!==''?(ok?'<span style="color:#4b311d">✓ 見積書の金額と一致</span>':`<span style="color:#c0392b">⚠ 見積書の金額 ${fmtY(it.totalPdf)} と違います</span>`):''}</summary>
+        ${it.totalPdf!==''?(ok?'<span style="color:#1e4a32">✓ 見積書の金額と一致</span>':`<span style="color:#c0392b">⚠ 見積書の金額 ${fmtY(it.totalPdf)} と違います</span>`):''}</summary>
         <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px">
           ${it.lines.map(l=>`<tr style="border-top:1px solid #eee;${isNegLine(l)?'color:#c0392b':''}"><td style="padding:3px 4px">${txt(l.desc)}</td><td style="padding:3px 4px;text-align:right">${l.qty===''?'':fmt(l.qty)}</td><td style="padding:3px 4px">${txt(l.unit)}</td><td style="padding:3px 4px;text-align:right">${l.unitPrice===''?'':fmtY(l.unitPrice)}</td><td style="padding:3px 4px;text-align:right">${l.unitPrice===''?'':fmtY(lineAmt(l))}</td><td style="padding:3px 4px;color:#888">${txt(l.memo)}</td></tr>`).join('')}
         </table>
@@ -2640,7 +2640,7 @@ const STATUSES=[
   {k:'見積中',c:'#7a7a7a',bg:'#f0f0f0'},
   {k:'受注',  c:'#1e6fb8',bg:'#e5f0fb'},
   {k:'施工中',c:'#b86e00',bg:'#fdf1e0'},
-  {k:'完工',  c:'#4b311d',bg:'#f0eae6'},
+  {k:'完工',  c:'#1e4a32',bg:'#e6f0e9'},
   {k:'請求済',c:'#7b3fa0',bg:'#f2e9f8'},
   {k:'入金済',c:'#0f7a4f',bg:'#dff5ea'},
   {k:'失注',  c:'#a33',   bg:'#fbeaea'}
@@ -2858,7 +2858,7 @@ function renderProjects(){
   const el=document.getElementById('panel-proj');
   el.innerHTML=`
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <div style="font-size:15px;font-weight:700;color:#4b311d;margin-right:6px">案件一覧</div>
+    <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">案件一覧</div>
     <button class="btn primary" onclick="openProjEditor()">＋ 新規案件</button>
     <button class="btn" onclick="openPastImport()" title="このシステムを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
     <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所${STAFF_ON()?"・担当":""}で検索"
@@ -2892,13 +2892,13 @@ function renderProjList(){
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
     ${STATUSES.map(s=>`<span onclick="P.status=P.status==='${s.k}'?'':'${s.k}';renderProjects()" style="cursor:pointer;opacity:${!P.status||P.status===s.k?1:.45}">${statusBadge(s.k)}<span style="font-size:11px;color:#888;margin:0 6px 0 3px">${counts[s.k]||0}</span></span>`).join('')}
   </div>
-  ${limited?`<div style="font-size:11.5px;color:#555;background:#f7f5f4;border:1px solid #e8e3df;border-radius:6px;padding:6px 10px;margin-bottom:10px">👤 <b>${esc(myName())}</b> さんの担当案件と、担当が未設定の案件だけを表示しています。</div>`:''}
+  ${limited?`<div style="font-size:11.5px;color:#555;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:6px;padding:6px 10px;margin-bottom:10px">👤 <b>${esc(myName())}</b> さんの担当案件と、担当が未設定の案件だけを表示しています。</div>`:''}
   ${noStaff&&STAFF_ON()?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
   <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
   <table style="width:100%;border-collapse:collapse">
     <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th>${STAFF_ON()?`<th ${th}>担当</th>`:''}<th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
     <tbody>
-    ${list.length?list.map(p=>`<tr onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#f5f1ee':'#fff'}">
+    ${list.length?list.map(p=>`<tr onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
       <td ${td}><span style="color:#888">${esc(p.no)}</span></td>
       <td ${td}><b>${txt(p.name)}</b></td>
       ${STAFF_ON()?`<td ${td}>${staffChips(p)}</td>`:''}
@@ -2922,7 +2922,7 @@ function renderProjDetail(){
   const docs=(p.docs||[]).slice().sort((a,b)=>b.savedAt-a.savedAt);
   const label=id=>(DOCS.find(d=>d.id===id)||{}).label||id;
   box.innerHTML=`
-  <div style="margin-top:14px;background:#fff;border:1.5px solid #4b311d;border-radius:8px;padding:14px 16px">
+  <div style="margin-top:14px;background:#fff;border:1.5px solid #1e4a32;border-radius:8px;padding:14px 16px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="color:#888;font-size:12px">${esc(p.no)}</span>
       <span style="font-size:16px;font-weight:700">${txt(p.name)}</span>
@@ -2985,9 +2985,9 @@ function renderProjDetail(){
           <td style="padding:6px 4px;color:#555">${esc(d.no)}</td>
           <td style="padding:6px 4px">${fmtD(d.date)}</td>
           <td style="padding:6px 4px;text-align:right">${fmtY(d.total)}</td>
-          <td style="padding:6px 4px;text-align:center"><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#f0eae6;color:#4b311d':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
+          <td style="padding:6px 4px;text-align:center"><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
           <td style="padding:6px 4px;text-align:right;white-space:nowrap">
-            ${d.docType==='estimate'?`<button class="btn sm" style="color:#4b311d;border-color:#4b311d" onclick="createInvoiceFromEstimate('${p.id}','${d.key}')">→ 請求書を作成</button>`:''}
+            ${d.docType==='estimate'?`<button class="btn sm" style="color:#1e4a32;border-color:#1e4a32" onclick="createInvoiceFromEstimate('${p.id}','${d.key}')">→ 請求書を作成</button>`:''}
             <button class="btn sm" onclick="openProjectDoc('${p.id}','${d.key}')">開く</button>
             <button class="btn sm del" onclick="deleteProjectDoc('${p.id}','${d.key}')">×</button>
           </td></tr>`).join('')}
@@ -3004,12 +3004,12 @@ function profitBox(p){
   const salesInc=hasYen(p.contractActual)?p.contractActual:null;
   const costEx=rc.reduce((a,r)=>a+(hasYen(r.tax)?(r.amount||0)-r.tax:Math.round((r.amount||0)/1.1)),0);
   const act=salesInc!==null?(()=>{const sales=Math.round(salesInc/1.1);const profit=sales-costEx;return {sales,cost:costEx,profit,rate:sales?Math.round(profit/sales*1000)/10:0};})():null;
-  const col=(title,sub,x,note)=>`<div style="flex:1;min-width:230px;border:1px solid #ebe6e3;border-radius:8px;padding:10px 12px;background:#fcfbfa">
+  const col=(title,sub,x,note)=>`<div style="flex:1;min-width:230px;border:1px solid #e3ebe5;border-radius:8px;padding:10px 12px;background:#fafcfb">
       <div style="font-size:11px;color:#666;font-weight:600">${title} <span style="font-weight:400;color:#999">${sub}</span></div>
       ${x?`<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12px;margin-top:6px">
         <span style="color:#777">売上</span><span style="text-align:right">${fmtY(x.sales)}</span>
         <span style="color:#777">原価</span><span style="text-align:right">${fmtY(x.cost)}</span>
-        <span style="font-weight:700">粗利</span><span style="text-align:right;font-weight:700;font-size:15px;color:${x.profit<0?'#c0392b':'#4b311d'}">${fmtY(x.profit)}<span style="font-size:11px;font-weight:600;margin-left:6px">${x.rate}%</span></span>
+        <span style="font-weight:700">粗利</span><span style="text-align:right;font-weight:700;font-size:15px;color:${x.profit<0?'#c0392b':'#1e4a32'}">${fmtY(x.profit)}<span style="font-size:11px;font-weight:600;margin-left:6px">${x.rate}%</span></span>
       </div>${note||''}`:`<div style="font-size:11.5px;color:#aaa;margin-top:8px">${note}</div>`}
     </div>`;
   return `<div style="margin-top:14px">
@@ -3046,7 +3046,7 @@ function openProjEditor(id,focusStaff){
   document.getElementById('pj-modal').innerHTML=`
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:640px;max-width:94vw;max-height:90vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-      <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:4px">${id?'案件を編集':'新規案件の起票'}</div>
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${id?'案件を編集':'新規案件の起票'}</div>
       <div class="sec-title">▸ 工事</div>
       <div class="form-grid">
         ${f('name','工事名 <span style="color:#c0392b">*</span>','例：玄関工事','text',true)}
@@ -3157,9 +3157,9 @@ function dashChart(months){
   const bw=Math.max(4,Math.min(18,cw/3.2));
   months.forEach((m,i)=>{
     const cx=L+cw*i+cw/2;
-    const bar=(v,x,c)=>`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(0.5,Math.abs(y(v)-y(0)))}" fill="${c}" rx="1.5"><title>${ymLabel(m.ym)} ${c==='#4b311d'?'売上':'仕入'}（税抜）${fmtY(v)}</title></rect>`;
-    g+=bar(m.salesEx,cx-bw-1,'#4b311d')+bar(m.costEx,cx+1,'#c9b26b');
-    g+=`<text x="${cx}" y="${H-B+15}" text-anchor="middle" font-size="${cw<34?9:10.5}" fill="${i===months.length-1?'#4b311d':'#888'}" font-weight="${i===months.length-1?700:400}">${+m.ym.slice(5)}月</text>`;
+    const bar=(v,x,c)=>`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(0.5,Math.abs(y(v)-y(0)))}" fill="${c}" rx="1.5"><title>${ymLabel(m.ym)} ${c==='#1e4a32'?'売上':'仕入'}（税抜）${fmtY(v)}</title></rect>`;
+    g+=bar(m.salesEx,cx-bw-1,'#1e4a32')+bar(m.costEx,cx+1,'#c9b26b');
+    g+=`<text x="${cx}" y="${H-B+15}" text-anchor="middle" font-size="${cw<34?9:10.5}" fill="${i===months.length-1?'#1e4a32':'#888'}" font-weight="${i===months.length-1?700:400}">${+m.ym.slice(5)}月</text>`;
   });
   const pts=months.map((m,i)=>`${L+cw*i+cw/2},${y(m.profit)}`).join(' ');
   g+=`<polyline points="${pts}" fill="none" stroke="#d35400" stroke-width="2"/>`+months.map((m,i)=>`<circle cx="${L+cw*i+cw/2}" cy="${y(m.profit)}" r="3.2" fill="#fff" stroke="#d35400" stroke-width="2"><title>${ymLabel(m.ym)} 粗利 ${fmtY(m.profit)}</title></circle>`).join('');
@@ -3197,18 +3197,18 @@ function renderDash(){
   const isNow=DB.ym===today.slice(0,7);
   el.innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-    <div style="font-size:15px;font-weight:700;color:#4b311d;margin-right:6px">ダッシュボード</div>
+    <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">ダッシュボード</div>
     <button class="btn sm" onclick="DB.ym=ymAdd(DB.ym,-1);renderDash()">◀</button>
     <input type="month" value="${DB.ym}" onchange="if(this.value){DB.ym=this.value;renderDash();}" style="font-size:13px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <button class="btn sm" onclick="DB.ym=ymAdd(DB.ym,1);renderDash()">▶</button>
     ${isNow?'':`<button class="btn sm" onclick="DB.ym='';renderDash()">今月に戻る</button>`}
-    ${isAdmin()?'':`<span style="font-size:11px;color:#666;background:#f7f5f4;border:1px solid #e8e3df;border-radius:6px;padding:3px 8px">👤 ${esc(myName())} さんが見られる案件だけで集計</span>`}
+    ${isAdmin()?'':`<span style="font-size:11px;color:#666;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:6px;padding:3px 8px">👤 ${esc(myName())} さんが見られる案件だけで集計</span>`}
   </div>
   <div class="dgrid">
     ${card(`${ymLabel(DB.ym)}の売上`,fmtY(cur.sales),`税抜 ${fmtY(cur.salesEx)}　請求書 ${cur.iv.length}件`,diff(cur.salesEx,prev.salesEx))}
     ${card(`${ymLabel(DB.ym)}の仕入`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件`,diff(cur.costEx,prev.costEx))}
-    ${card(`${ymLabel(DB.ym)}の粗利（税抜）`,fmtY(cur.profit),cur.rate===null?'粗利率 —':`粗利率 <b>${cur.rate}%</b>`,diff(cur.profit,prev.profit),cur.profit<0?'#c0392b':'#4b311d')}
-    ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　仕入 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#4b311d')}
+    ${card(`${ymLabel(DB.ym)}の粗利（税抜）`,fmtY(cur.profit),cur.rate===null?'粗利率 —':`粗利率 <b>${cur.rate}%</b>`,diff(cur.profit,prev.profit),cur.profit<0?'#c0392b':'#1e4a32')}
+    ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　仕入 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#1e4a32')}
   </div>
   <div class="dgrid" style="margin-top:10px">
     ${card('未回収（入金待ちの請求書）',fmtY(arTotal),`${unpaidInv.length}件`,arOver.length?`<span class="dwarn">⚠ 支払期限切れ ${arOver.length}件 ${fmtY(arOver.reduce((a,x)=>a+(x.d.total||0),0))}</span>`:'')}
@@ -3218,7 +3218,7 @@ function renderDash(){
   </div>
   <div class="dbox" style="margin-top:12px">
     <div class="dbox-t">売上・仕入・粗利の推移（直近12か月・税抜）
-      <span style="font-weight:400;margin-left:10px;font-size:11px"><span style="display:inline-block;width:10px;height:10px;background:#4b311d;border-radius:2px"></span> 売上　<span style="display:inline-block;width:10px;height:10px;background:#c9b26b;border-radius:2px"></span> 仕入　<span style="color:#d35400;font-weight:700">━●</span> 粗利</span></div>
+      <span style="font-weight:400;margin-left:10px;font-size:11px"><span style="display:inline-block;width:10px;height:10px;background:#1e4a32;border-radius:2px"></span> 売上　<span style="display:inline-block;width:10px;height:10px;background:#c9b26b;border-radius:2px"></span> 仕入　<span style="color:#d35400;font-weight:700">━●</span> 粗利</span></div>
     ${dashChart(months)}
   </div>
   <div class="dgrid2" style="margin-top:12px">
@@ -3226,7 +3226,7 @@ function renderDash(){
       ${cur.iv.length?`<table style="width:100%;border-collapse:collapse">${cur.iv.sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||'')).map(x=>`<tr ${go(x.p.id)}><td ${td}>${fmtD(x.d.date).slice(5)}</td><td ${td}><b>${txt(x.p.name)}</b><div style="font-size:10.5px;color:#888">${txt(x.p.client)}　${esc(x.d.no)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>`:empty('この月に発行した請求書はありません')}
     </div>
     ${STAFF_ON()?`    <div class="dbox"><div class="dbox-t">担当別（${ymLabel(DB.ym)}・税抜）<span style="font-weight:400;font-size:10.5px;color:#999;margin-left:6px">共同担当は人数で割って計上</span></div>
-      ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">仕入</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#4b311d'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・仕入はありません')}
+      ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">仕入</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#1e4a32'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・仕入はありません')}
     </div>`:''}
     <div class="dbox"><div class="dbox-t">入金待ちの請求書</div>
       ${unpaidInv.length?`<table style="width:100%;border-collapse:collapse">${unpaidInv.slice(0,8).map(x=>`<tr ${go(x.p.id)}><td ${td}>${x.due?`<span style="${x.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(x.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(x.p.name)}<div style="font-size:10.5px;color:#888">${txt(x.p.client)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>${unpaidInv.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${unpaidInv.length-8}件</div>`:''}
@@ -3256,7 +3256,7 @@ function renderDocList(){
   const el=document.getElementById('panel-issued');
   el.innerHTML=`
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <div style="font-size:15px;font-weight:700;color:#4b311d;margin-right:6px">発行請求書一覧</div>
+    <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">発行請求書一覧</div>
     <input value="${esc(DL.q)}" oninput="DL.q=this.value;renderDocRows()" placeholder="番号・工事名・顧客名で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <select onchange="DL.status=this.value;renderDocRows()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
@@ -3289,7 +3289,7 @@ function renderDocRows(){
       <td ${td}>${txt(p.name)}<div style="font-size:10.5px;color:#999">${esc(p.no)}</div></td>
       <td ${td}>${txt(p.client)} ${txt(p.clientTitle||'')}</td>
       <td ${td}><span style="display:block;text-align:right;white-space:nowrap">${fmtY(d.total)}</span></td>
-      <td ${td}><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#f0eae6;color:#4b311d':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
+      <td ${td}><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
       <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}><span style="display:flex;gap:6px;justify-content:flex-end">
         <button class="btn sm" onclick="openProjectDoc('${p.id}','${d.key}','issued')">開く</button>
@@ -3310,7 +3310,7 @@ function renderReceived(){
   const projs=visibleProjects();
   document.getElementById('panel-received').innerHTML=`
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <div style="font-size:15px;font-weight:700;color:#4b311d;margin-right:6px">受領請求書一覧</div>
+    <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">受領請求書一覧</div>
     <button class="btn primary" onclick="openRcvEditor()">＋ 受領請求書を登録</button>
     <input value="${esc(RV.q)}" oninput="RV.q=this.value;renderRcvRows()" placeholder="請求元・番号・工事名で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
@@ -3344,7 +3344,7 @@ function renderRcvRows(){
       <td ${td}>${fmtD(r.date)}</td>
       <td ${td}><b>${txt(r.vendor)}</b>${r.fileId?` <a href="#" onclick="openProjFile('${r.fileId}');return false" title="元の書類を開く">📄</a>`:''}${r.memo?`<div style="font-size:10.5px;color:#999">${txt(r.memo)}</div>`:''}</td>
       <td ${td}><span style="color:#555">${txt(r.no)}</span></td>
-      <td ${td}>${p?`<a href="#" onclick="P.openId='${p.id}';setMainTab('proj');return false" style="color:#4b311d">${txt(p.name)}</a><div style="font-size:10.5px;color:#999">${esc(p.no)}</div>`:'<span style="color:#bbb">—</span>'}</td>
+      <td ${td}>${p?`<a href="#" onclick="P.openId='${p.id}';setMainTab('proj');return false" style="color:#1e4a32">${txt(p.name)}</a><div style="font-size:10.5px;color:#999">${esc(p.no)}</div>`:'<span style="color:#bbb">—</span>'}</td>
       <td ${td}><span style="display:block;text-align:right;white-space:nowrap">${fmtY(r.amount||0)}</span></td>
       <td ${td}><span style="${over?'color:#c0392b;font-weight:700':''}">${fmtD(r.due)}${over?' 期限超過':''}</span></td>
       <td ${td}>${r.payStatus==='支払済'
@@ -3367,8 +3367,8 @@ function openRcvEditor(id,presetProj){
   host.innerHTML=`
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:600px;max-width:94vw;max-height:90vh;overflow:auto">
-      <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:10px">${id?'受領請求書を編集':'受領請求書を登録'}</div>
-      <div style="background:#f9f7f5;border:1px solid #e3dbd5;border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:10px">${id?'受領請求書を編集':'受領請求書を登録'}</div>
+      <div style="background:#f5f9f6;border:1px solid #d5e3d9;border-radius:8px;padding:10px 12px;margin-bottom:12px">
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <label class="btn sm primary" style="cursor:pointer">📄 PDF・写真から読み取る<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="rcvReadFile(this)"/></label>
           <button class="btn sm" onclick="const b=document.getElementById('re-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
@@ -3420,7 +3420,7 @@ function rcvApply(sum,ocr){
   if(set('no',sum.no,true))got.push('請求書番号');
   if(set('vendor',sum.vendor,true))got.push('請求元');
   const st=document.getElementById('re-status');
-  st.innerHTML=got.length?`<span style="color:#4b311d">✓ ${got.join('・')} を入れました（黄色の欄）。内容を確認してから保存してください。</span>${ocr?'<br><span style="color:#b86e00">画像から読み取ったため、数字の読み間違いに注意してください。</span>':''}`
+  st.innerHTML=got.length?`<span style="color:#1e4a32">✓ ${got.join('・')} を入れました（黄色の欄）。内容を確認してから保存してください。</span>${ocr?'<br><span style="color:#b86e00">画像から読み取ったため、数字の読み間違いに注意してください。</span>':''}`
     :'<span style="color:#c0392b">金額や日付を見つけられませんでした。手入力してください。</span>';
 }
 async function rcvReadFile(input){
@@ -3488,7 +3488,7 @@ function loadIssuer(){
 function renderMaster(){
   const tb=(k,l)=>`<button class="m-tab${MS.tab===k?' active':''}" onclick="MS.tab='${k}';renderMaster()">${l}</button>`;
   document.getElementById('panel-master').innerHTML=`
-  <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:6px">マスタ登録</div>
+  <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:6px">マスタ登録</div>
   <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin-bottom:14px">${tb('cust','顧客マスタ')}${tb('self','自社情報')}${isCloud()&&STAFF_ON()?tb('acct','アカウント・管理者'):''}</div>
   <div id="ms-body"></div><div id="ms-modal"></div>`;
   if(MS.tab==='cust')renderCustomers();else if(MS.tab==='acct'&&isCloud()&&STAFF_ON())renderAccounts();else renderIssuerForm();
@@ -3499,7 +3499,7 @@ function renderAccounts(){
   const td='style="padding:9px 8px;border-bottom:1px solid #eee;font-size:12.5px"';
   const th='style="text-align:left;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0"';
   document.getElementById('ms-body').innerHTML=`
-  <div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:10px;background:#f7f5f4;border:1px solid #e8e3df;border-radius:8px;padding:10px 12px">
+  <div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:10px;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:8px;padding:10px 12px">
     ・<b>管理者</b>は、すべての案件を見られます。<br>
     ・管理者でない人は、<b>自分が担当の案件</b>と<b>担当が未設定の案件</b>だけが一覧に出ます。<br>
     ・管理者の設定を変えられるのは管理者だけです。
@@ -3544,7 +3544,7 @@ function renderCustomers(){
   <table style="width:100%;border-collapse:collapse">
     <thead><tr><th ${th}>顧客名</th><th ${th}>住所</th><th ${th}>電話番号</th><th ${th}>メモ</th><th ${th}>案件</th><th ${th}></th></tr></thead>
     <tbody>${list.length?list.map(c=>`<tr>
-      <td ${td}><b>${txt(c.name)}</b> ${txt(c.title||'')}</td><td ${td}>${c.zip?'〒'+txt(c.zip)+' ':''}${txt(c.addr)}${c.envName||c.envZip||c.envAddr?`<div style="font-size:10.5px;color:#4b311d;margin-top:2px">✉ 封筒：${txt([c.envName,c.envZip?'〒'+c.envZip:'',c.envAddr].filter(Boolean).join('　'))}</div>`:''}</td><td ${td}>${txt(c.tel)}</td>
+      <td ${td}><b>${txt(c.name)}</b> ${txt(c.title||'')}</td><td ${td}>${c.zip?'〒'+txt(c.zip)+' ':''}${txt(c.addr)}${c.envName||c.envZip||c.envAddr?`<div style="font-size:10.5px;color:#1e4a32;margin-top:2px">✉ 封筒：${txt([c.envName,c.envZip?'〒'+c.envZip:'',c.envAddr].filter(Boolean).join('　'))}</div>`:''}</td><td ${td}>${txt(c.tel)}</td>
       <td ${td}><span style="color:#777">${txt(c.memo)}</span></td><td ${td}>${used(c.id)}件</td>
       <td ${td}><span style="display:flex;gap:6px;justify-content:flex-end">
         <button class="btn sm" onclick="openCustEditor('${c.id}')">✏ 編集</button>
@@ -3558,7 +3558,7 @@ function openCustEditor(id){
   document.getElementById('ms-modal').innerHTML=`
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:560px;max-width:94vw">
-      <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:10px">${id?'顧客を編集':'顧客を登録'}</div>
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:10px">${id?'顧客を編集':'顧客を登録'}</div>
       <div class="form-grid">
         ${f('name','顧客名 <span style="color:#c0392b">*</span>','例：田中 太郎')}
         <div class="field"><label>敬称</label><select id="ce-title">${['様','御中','ご担当者様'].map(v=>`<option${c.title===v?' selected':''}>${v}</option>`).join('')}</select></div>
@@ -3975,8 +3975,8 @@ function showConnectOverlay(name){
   let el=document.getElementById('sh-overlay');
   if(!el){el=document.createElement('div');el.id='sh-overlay';document.body.appendChild(el);}
   el.innerHTML=`<div style="position:fixed;inset:0;background:rgba(245,245,245,.96);z-index:2000;display:flex;align-items:center;justify-content:center">
-    <div style="background:#fff;border:1px solid #e3dbd5;border-radius:12px;padding:26px 30px;width:440px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.08)">
-      <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:8px">📁 共有フォルダに接続します</div>
+    <div style="background:#fff;border:1px solid #d5e3d9;border-radius:12px;padding:26px 30px;width:440px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.08)">
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:8px">📁 共有フォルダに接続します</div>
       <div style="font-size:12.5px;color:#555;line-height:1.7;margin-bottom:16px">共有フォルダ「<b>${esc(name)}</b>」のデータを使います。<br>下のボタンを押して、ブラウザの確認で「編集を許可」（または「許可」）を選んでください。</div>
       <button class="btn primary" style="padding:9px 22px;font-size:13px" onclick="reconnectShared()">接続する</button>
       <div style="margin-top:14px"><a href="#" onclick="disconnectShared().then(hideConnectOverlay);return false" style="font-size:11px;color:#999">共有をやめて、このパソコンのデータを使う</a></div>
@@ -3992,13 +3992,13 @@ function shStatus(){
       <button class="btn" style="width:100%;font-size:11px" onclick="connectSharedFolder()">📁 共有フォルダに接続</button>`;
     return;
   }
-  const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#4b311d">✓ 同期済み</span>';
+  const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#1e4a32">✓ 同期済み</span>';
   const t=SH.lastCheck?new Date(SH.lastCheck):null;
   const hm=t?`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`:'';
   el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">📁 共有フォルダ：<b>${esc(SH.dir?SH.dir.name:'')}</b><br>
       ${st}　<span style="color:#888">案件 ${SH.cache.projects.size}件</span><br>
       <span style="color:#999">最終確認 ${hm||'—'}</span></div>
-    ${SH.lastMsg?`<div style="font-size:10.5px;color:#4b311d;background:#f5f1ee;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
+    ${SH.lastMsg?`<div style="font-size:10.5px;color:#1e4a32;background:#eef5f0;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
     <button class="btn" style="width:100%;font-size:11px;margin-bottom:4px" onclick="shPoll(true)" ${SH.checking?'disabled':''}>${SH.checking?'⟳ 確認中…':'⟳ 今すぐ更新'}</button>
     <a href="#" onclick="disconnectShared();return false" style="font-size:10px;color:#aaa">共有をやめる</a>`;
 }
@@ -4039,10 +4039,10 @@ async function doInstall(){
 function renderInstallGuide(done){
   const m=document.getElementById('inst-modal');if(!m)return;
   const t=INST.tab,me=detectDevice();
-  const step=(n,html)=>`<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex:none;width:22px;height:22px;border-radius:50%;background:#4b311d;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${n}</div><div style="font-size:13px;line-height:1.7">${html}</div></div>`;
-  const k=x=>`<b style="background:#f5f3f1;border:1px solid #e3dbd5;border-radius:4px;padding:0 5px;white-space:nowrap">${x}</b>`;
-  const tb=(id,l)=>`<button class="m-tab${t===id?' active':''}" onclick="INST.tab='${id}';renderInstallGuide()">${l}${me===id?' <span style="font-size:10px;color:#4b311d">（この端末）</span>':''}</button>`;
-  const quick=INST.prompt&&t===me&&t!=='iphone'?`<div style="background:#f5f1ee;border:1px solid #dcd1c9;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center">
+  const step=(n,html)=>`<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex:none;width:22px;height:22px;border-radius:50%;background:#1e4a32;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${n}</div><div style="font-size:13px;line-height:1.7">${html}</div></div>`;
+  const k=x=>`<b style="background:#f1f5f2;border:1px solid #d5e3d9;border-radius:4px;padding:0 5px;white-space:nowrap">${x}</b>`;
+  const tb=(id,l)=>`<button class="m-tab${t===id?' active':''}" onclick="INST.tab='${id}';renderInstallGuide()">${l}${me===id?' <span style="font-size:10px;color:#1e4a32">（この端末）</span>':''}</button>`;
+  const quick=INST.prompt&&t===me&&t!=='iphone'?`<div style="background:#eef5f0;border:1px solid #c9dccf;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center">
       <div style="font-size:12.5px;margin-bottom:8px">この端末なら、ボタン1つで入れられます。</div>
       <button class="btn primary" style="padding:9px 22px;font-size:14px" onclick="doInstall()">📲 今すぐインストール</button>
       <div style="font-size:11px;color:#888;margin-top:6px">うまくいかないときは、下の手順で入れてください。</div></div>`:'';
@@ -4065,13 +4065,13 @@ function renderInstallGuide(done){
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:560px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <img src="icon-192.png" alt="" style="width:40px;height:40px;border-radius:8px" onerror="this.style.display='none'"/>
-        <div><div style="font-size:15px;font-weight:700;color:#4b311d">パソコン・スマホにシステムを入れる</div>
+        <div><div style="font-size:15px;font-weight:700;color:#1e4a32">パソコン・スマホにシステムを入れる</div>
         <div style="font-size:11.5px;color:#777">入れておくと、デスクトップやホーム画面の「匠」アイコンからすぐ開けます。</div></div>
       </div>
-      ${done?`<div style="background:#f5f1ee;border:1px solid #dcd1c9;border-radius:8px;padding:14px;margin:14px 0;font-size:13px;color:#4b311d;text-align:center">✓ インストールしました。次からは「匠」のアイコンから開けます。</div>`:`
+      ${done?`<div style="background:#eef5f0;border:1px solid #c9dccf;border-radius:8px;padding:14px;margin:14px 0;font-size:13px;color:#1e4a32;text-align:center">✓ インストールしました。次からは「匠」のアイコンから開けます。</div>`:`
       <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin:12px 0 14px;flex-wrap:wrap">${tb('pc','💻 パソコン')}${tb('iphone','📱 iPhone')}${tb('android','📱 Android')}</div>
       ${quick}${body}
-      <div style="font-size:11.5px;color:#888;margin-top:12px;line-height:1.7">・システムのアドレス：<span style="user-select:all;color:#4b311d">${esc(location.origin+location.pathname)}</span><br>・アイコンから開いても中身は同じです。ログイン状態やシステムの更新もそのまま反映されます。</div>`}
+      <div style="font-size:11.5px;color:#888;margin-top:12px;line-height:1.7">・システムのアドレス：<span style="user-select:all;color:#1e4a32">${esc(location.origin+location.pathname)}</span><br>・アイコンから開いても中身は同じです。ログイン状態やシステムの更新もそのまま反映されます。</div>`}
       <div style="text-align:right;margin-top:14px"><button class="btn" onclick="closeInstallGuide()">閉じる</button></div>
     </div></div>`;
 }
@@ -4244,13 +4244,13 @@ async function cloudPoll(manual){
   shVersionCheck();shStatus();
 }
 function cloudStatus(el){
-  const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#4b311d">✓ 保存済み</span>';
+  const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#1e4a32">✓ 保存済み</span>';
   const t=SH.lastCheck?new Date(SH.lastCheck):null;
   const hm=t?`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`:'—';
-  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">${STAFF_ON()?`👤 <b>${esc(myName()||'（名前未登録）')}</b>${adminIds().includes(SH.user&&SH.user.id)?' <span style="font-size:9.5px;background:#4b311d;color:#fff;border-radius:3px;padding:0 4px">管理者</span>':''} <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>`:''}☁ ${esc(SH.user&&SH.user.email||'')}<br>
+  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">${STAFF_ON()?`👤 <b>${esc(myName()||'（名前未登録）')}</b>${adminIds().includes(SH.user&&SH.user.id)?' <span style="font-size:9.5px;background:#1e4a32;color:#fff;border-radius:3px;padding:0 4px">管理者</span>':''} <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>`:''}☁ ${esc(SH.user&&SH.user.email||'')}<br>
       ${st}　<span style="color:#888">案件 ${SH.cache.projects.size}件</span><br>
       <span style="color:#999">${SH.live?'● リアルタイム反映中':'最終確認 '+hm}</span></div>
-    ${SH.lastMsg?`<div style="font-size:10.5px;color:#4b311d;background:#f5f1ee;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
+    ${SH.lastMsg?`<div style="font-size:10.5px;color:#1e4a32;background:#eef5f0;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
     <button class="btn" style="width:100%;font-size:11px;margin-bottom:4px" onclick="shPoll(true)" ${SH.checking?'disabled':''}>${SH.checking?'⟳ 確認中…':'⟳ 今すぐ更新'}</button>
     <a href="#" onclick="cloudLogout();return false" style="font-size:10px;color:#aaa">ログアウト</a>`;
 }
@@ -4258,8 +4258,8 @@ function showCloudOverlay(kind,text){
   let el=document.getElementById('sh-overlay');
   if(!el){el=document.createElement('div');el.id='sh-overlay';document.body.appendChild(el);}
   const box=inner=>`<div style="position:fixed;inset:0;background:#f5f5f5;z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px">
-    <div style="background:#fff;border:1px solid #e3dbd5;border-radius:12px;padding:26px 28px;width:380px;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.06)">
-      <div style="font-size:15px;font-weight:700;color:#4b311d;margin-bottom:4px">${esc(ISSUER.name||APP_CFG.brand||'')}</div>
+    <div style="background:#fff;border:1px solid #d5e3d9;border-radius:12px;padding:26px 28px;width:380px;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.06)">
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${esc(ISSUER.name||APP_CFG.brand||'')}</div>
       <div style="font-size:11px;color:#999;margin-bottom:16px">案件管理・帳票作成システム</div>${inner}</div></div>`;
   if(kind==='name'){
     const m=(SH.user&&SH.members[SH.user.id])||{};const again=!!SH.started;
