@@ -50,7 +50,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 .btn.primary:hover{background:#163a27}
 .btn.sm{padding:3px 8px;font-size:11px}
 .btn.del{color:#c0392b;border-color:#e0b0aa}
-.ldrag{cursor:grab;color:#aaa;text-align:center;font-size:15px;user-select:none;padding:0 2px!important}
+.ldrag{cursor:grab;color:#aaa;text-align:center;font-size:15px;user-select:none;padding:0 2px!important;touch-action:none}
 .ldrag:hover{color:#1e4a32}
 .btn.lmv{padding:2px 5px;font-size:10px;color:#666;margin-right:1px}
 .btn.lmv:disabled{opacity:.3;cursor:default}
@@ -264,6 +264,26 @@ function fmt(n){return Math.round(n).toLocaleString('ja-JP')}
 function fmtY(n){return (Math.round(n)<0?'-¥':'¥')+fmt(Math.abs(n))}
 // 入力欄の数値：全角・カンマ・△▲も受け付ける（不正なら0）
 function numIn(v){if(v===''||v==null)return '';const n=toNum(v);return n===null?0:n;}
+// ===== 数字入力に3桁ごとのカンマを自動で付ける =====
+const NUM_SEL='input.lq,input.lp,input.lc,#pe-contract,#re-amount,#re-tax';
+function commaStr(v){
+  if(v===''||v==null)return '';
+  const t=String(v).replace(/[０-９．－ー]/g,c=>({'．':'.','－':'-','ー':'-'}[c]||String.fromCharCode(c.charCodeAt(0)-0xFEE0))).replace(/[,，\s]/g,'');
+  const m=t.match(/^([-−]?)(\d*)(\.\d*)?$/);
+  if(!m)return String(v);            // 数字以外が入っているときはそのまま
+  return (m[1]?'-':'')+(m[2]?m[2].replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,','):'')+(m[3]||'');
+}
+function commaLive(el){
+  const v=el.value,f=commaStr(v);if(f===v)return;
+  // カーソル位置（左側の数字の個数）を保ったまま書き換える
+  const pos=el.selectionStart??v.length;const digits=v.slice(0,pos).replace(/[^0-9０-９.．\-－ー−]/g,'').length;
+  el.value=f;
+  let n=0,i=0;for(;i<f.length&&n<digits;i++)if(/[0-9.\-]/.test(f[i]))n++;
+  try{el.setSelectionRange(i,i);}catch{}
+}
+function commaAll(root){(root||document).querySelectorAll(NUM_SEL).forEach(e=>{const f=commaStr(e.value);if(f!==e.value)e.value=f;});}
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches(NUM_SEL)&&!e.isComposing)commaLive(t);},true);
+document.addEventListener('compositionend',e=>{const t=e.target;if(t&&t.matches&&t.matches(NUM_SEL))setTimeout(()=>{commaLive(t);t.dispatchEvent(new Event('input',{bubbles:true}));},0);},true);
 const lineAmt=l=>(parseFloat(l.qty)||0)*(parseFloat(l.unitPrice)||0);
 const isNegLine=l=>lineAmt(l)<0||(parseFloat(l.unitPrice)||0)<0||(parseFloat(l.qty)||0)<0;
 const NEG='#c0392b';
@@ -443,6 +463,20 @@ function lineDrop(e,i){
   const from=LDRAG.from;let to=i+(below?1:0);if(from<to)to--;
   LDRAG.from=null;moveLine(from,to);
 }
+// スマホ：⠿ を指で押さえたまま動かして並べ替え
+function lineTouchStart(e,i){
+  e.preventDefault();LDRAG.from=i;
+  const rows=[...document.querySelectorAll('.line-row')];rows[i].classList.add('dragging');
+  let to=null;
+  const mv=ev=>{ev.preventDefault();const t=ev.touches[0];
+    rows.forEach(r=>r.classList.remove('drop-above','drop-below'));
+    const el=document.elementFromPoint(t.clientX,t.clientY);const r=el&&el.closest&&el.closest('.line-row');if(!r){to=null;return;}
+    const j=rows.indexOf(r),b=r.getBoundingClientRect(),below=t.clientY>b.top+b.height/2;
+    r.classList.add(below?'drop-below':'drop-above');to=j+(below?1:0);};
+  const end=()=>{document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',end);
+    const from=LDRAG.from;lineDragEnd();if(to===null)return;let t2=to;if(from<t2)t2--;moveLine(from,t2);};
+  document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',end);
+}
 function lineDragEnd(){LDRAG.from=null;document.querySelectorAll('.line-row').forEach(r=>{r.draggable=false;r.classList.remove('dragging','drop-above','drop-below');});}
 function updateAmt(i){
   const rows=document.querySelectorAll('.line-row');
@@ -571,7 +605,7 @@ function renderForm(){
     h+=`<div class="sec-title">▸ 明細</div>
     <table class="line-tbl">
       <thead><tr>
-        <th style="width:2%" title="⠿ をドラッグ、または ▲▼ で行を並べ替えられます"></th>
+        <th style="width:2%" title="⠿ をドラッグすると行を並べ替えられます"></th>
         <th style="width:${d.id==='estimate'?22:27}%">品名・摘要</th>
         <th style="width:7%">数量</th>
         <th style="width:7%">単位</th>
@@ -579,12 +613,12 @@ function renderForm(){
         <th style="width:${d.id==='estimate'?11:15}%">${amtLabel}</th>
         ${d.id==='estimate'?`<th style="width:11%;background:#fbfaf3">仕入単価</th><th style="width:10%;background:#fbfaf3">仕入金額 <span style="font-weight:400;color:#aaa;font-size:10px">※帳票に出ません</span></th>`:''}
         <th style="width:${d.id==='estimate'?12:16}%">備考</th>
-        <th style="width:9%"></th>
+        <th style="width:4%"></th>
       </tr></thead>
       <tbody>
       ${F.lines.map((l,i)=>`<tr class="line-row${isNegLine(l)?' neg-row':''}" data-cost="${l.cost??''}" data-i="${i}"
           ondragstart="lineDragStart(event,${i})" ondragover="lineDragOver(event,${i})" ondragleave="this.classList.remove('drop-above','drop-below')" ondrop="lineDrop(event,${i})" ondragend="lineDragEnd()">
-        <td class="ldrag" title="ドラッグで並べ替え" onmousedown="this.parentNode.draggable=true" onmouseup="this.parentNode.draggable=false">⠿</td>
+        <td class="ldrag" title="ドラッグで並べ替え" onmousedown="this.parentNode.draggable=true" onmouseup="this.parentNode.draggable=false" ontouchstart="lineTouchStart(event,${i})">⠿</td>
         <td><input class="ld" value="${esc(l.desc)}" placeholder="品名・サービス名（値引きはマイナスで入力）" oninput="updateAmt(${i})"/></td>
         <td><input class="lq" type="text" value="${l.qty===0&&l.unitPrice===0?'':l.qty}" style="width:54px" oninput="updateAmt(${i})"/></td>
         <td><select class="lu" style="width:56px;font-size:12px;padding:3px 2px;border:1px solid #ddd;border-radius:4px;font-family:inherit">${[...new Set(['','台','式','件','個','枚',l.unit||''])].map(u=>`<option${(l.unit||'')===u?' selected':''}>${u}</option>`).join('')}</select></td>
@@ -594,7 +628,6 @@ function renderForm(){
         <td style="text-align:right;padding:3px 6px;font-size:12px;color:#7a6a2a;background:#fbfaf3" id="lca-${i}">${l.cost===''||l.cost==null?'':fmt((parseFloat(l.qty)||0)*(parseFloat(l.cost)||0))}</td>`:''}
         <td><input class="lm" value="${esc(l.memo||'')}" placeholder="備考"/></td>
         <td style="white-space:nowrap;text-align:right">
-          <button class="btn sm lmv" title="1行上へ" onclick="moveLine(${i},${i-1})" ${i===0?'disabled':''}>▲</button><button class="btn sm lmv" title="1行下へ" onclick="moveLine(${i},${i+1})" ${i===F.lines.length-1?'disabled':''}>▼</button>
           <button class="btn sm del" onclick="removeLine(${i})">×</button></td>
       </tr>`).join('')}
       </tbody>
@@ -657,6 +690,7 @@ function renderForm(){
   }
 
   document.getElementById('panel-form').innerHTML=h;
+  commaAll(document.getElementById('panel-form'));
   refreshPendingBanner();
   updateSubtotalDisplay();
 }
@@ -2931,7 +2965,7 @@ function openProjEditor(id,focusStaff){
       </div>
     </div>
   </div>`;
-  PE.staff=staffOf(p).slice();peStaffRender();
+  PE.staff=staffOf(p).slice();peStaffRender();commaAll(document.getElementById('pj-modal'));
   setTimeout(()=>{const e=document.getElementById(focusStaff?'pe-staff-in':'pe-name');if(e){e.focus();if(focusStaff)e.scrollIntoView({block:'center'});}},30);
 }
 function fillFromCustomer(id){
@@ -3241,12 +3275,13 @@ function openRcvEditor(id,presetProj){
         <button class="btn primary" onclick="saveRcvEditor(${id?`'${id}'`:'null'},this)">保存</button>
       </div>
     </div></div>`;
+  commaAll(host);
   setTimeout(()=>{const e=document.getElementById('re-vendor');if(e)e.focus();},30);
 }
 // 受領請求書：読み取った内容を入力欄に入れる
 let RCV_FILE=null;
 function rcvApply(sum,ocr){
-  const set=(k,v,onlyEmpty)=>{const e=document.getElementById('re-'+k);if(!e||v===''||v==null)return false;if(onlyEmpty&&e.value.trim())return false;e.value=v;e.style.background='#fffbe6';return true;};
+  const set=(k,v,onlyEmpty)=>{const e=document.getElementById('re-'+k);if(!e||v===''||v==null)return false;if(onlyEmpty&&e.value.trim())return false;e.value=e.matches(NUM_SEL)?commaStr(v):v;e.style.background='#fffbe6';return true;};
   const got=[];
   if(sum.amount!==''){
     // 税抜の金額しか分からないときは税込に直す
@@ -3536,7 +3571,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04n';
+const APP_VERSION='2026.10.04o';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
