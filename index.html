@@ -982,11 +982,11 @@ function estimateLandscape(totals){
   <!-- 中央：御見積金額・工事情報（残りの高さの真ん中に置く） -->
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-bottom:6mm">
     <div style="width:170mm">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid ${NV};border-bottom:2px solid ${NV};padding:12px 14px 10px">
-        <span style="font-size:19px;font-weight:700;letter-spacing:.1em">御見積金額</span>
-        <span style="font-size:30px;font-weight:900">¥${fmt(total)}-</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px solid ${NV};border-bottom:2px solid ${NV};padding:11px 14mm;min-height:20mm;box-sizing:border-box">
+        <span style="font-size:19px;font-weight:700;letter-spacing:.1em;line-height:1">御見積金額</span>
+        <span style="font-size:30px;font-weight:900;line-height:1">¥${fmt(total)}-</span>
       </div>
-      <div style="text-align:right;font-size:11.5px;margin-top:6px;color:#333">
+      <div style="text-align:right;font-size:11.5px;margin-top:6px;padding-right:14mm;color:#333">
         ${isExc?`上記金額には消費税等（¥${fmt(tax)}）が含まれています。`:'上記金額には消費税等が含まれています。'}
       </div>
       ${(()=>{const items=[['工事名',txt(F.subject)],['工事場所',txt(F.site)],['有効期限',F.dueDate?warekiStr(F.dueDate)+'まで':'']];
@@ -3664,7 +3664,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04y';
+const APP_VERSION='2026.10.04z';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
