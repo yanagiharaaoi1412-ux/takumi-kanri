@@ -360,7 +360,7 @@ function setMainTab(t){
   document.getElementById('back-btn').textContent=S.backTo==='issued'?'← 発行請求書一覧に戻る':'← 案件に戻る';
   document.getElementById('main-bar').style.display=editor?'flex':'none';
   if(t==='preview') renderPreview();
-  if(t==='proj') renderProjects();
+  if(t==='proj'){if(!S.dedupedOnce){S.dedupedOnce=true;try{dedupeAllProjects();}catch(e){console.warn(e);}}renderProjects();}
   if(t==='dash') renderDash();
   if(t==='issued') renderDocList();
   if(t==='received') renderReceived();
@@ -2688,7 +2688,31 @@ function peStaffFromInput(){const e=document.getElementById('pe-staff-in');if(!e
 function getProjects(){const l=collGet('projects',PROJ_KEY);return shared()?l.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)):l;}
 function saveProjects(list){collSave('projects',PROJ_KEY,list);}
 function getProject(id){return getProjects().find(p=>p.id===id)||null;}
+// ===== 同じ内容の下書きが重なって保存されたときの自動整理 =====
+// 種類・中身（明細・宛先・日付など）がまったく同じ帳票が複数あれば、1つだけ残して下書きの方を消す。
+// 残す順：発行済 → いま開いている書類 → 一番新しく保存したもの
+function docSig(d){const f={...(d.F||{})};delete f.docKey;delete f.noLocked;delete f.issued;return d.docType+'|'+(d.taxType||'')+'|'+JSON.stringify(f);}
+function dedupeDocs(proj){
+  const docs=proj.docs||[];if(docs.length<2)return 0;
+  const groups={};docs.forEach(d=>{const k=docSig(d);(groups[k]=groups[k]||[]).push(d);});
+  const drop=new Set();
+  Object.values(groups).forEach(g=>{
+    if(g.length<2)return;
+    const openKey=S.projectId===proj.id&&F&&F.docKey;
+    const keep=g.slice().sort((a,b)=>(b.status==='発行済')-(a.status==='発行済')||(b.key===openKey)-(a.key===openKey)||(b.savedAt||0)-(a.savedAt||0))[0];
+    g.forEach(d=>{if(d!==keep&&d.status!=='発行済'&&!d.pendingF)drop.add(d.key);});
+  });
+  if(!drop.size)return 0;
+  proj.docs=docs.filter(d=>!drop.has(d.key));
+  return drop.size;
+}
+function dedupeAllProjects(){
+  let n=0;
+  getProjects().forEach(p=>{const c=dedupeDocs(p);if(c){n+=c;putProject(p);}});
+  return n;
+}
 function putProject(proj){
+  dedupeDocs(proj);
   const list=getProjects();const i=list.findIndex(p=>p.id===proj.id);
   proj.updatedAt=Date.now();
   if(i>=0)list[i]=proj;else list.unshift(proj);
@@ -3664,7 +3688,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04z';
+const APP_VERSION='2026.10.05a';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
@@ -4145,7 +4169,7 @@ function cloudStart2(){
   loadIssuer();updateBadge();
   clearInterval(SH.timer);SH.timer=setInterval(()=>cloudPoll(false),60000);  // 念のため1分ごとにも確認
   SH.lastCheck=Date.now();shStatus();shVersionCheck();
-  S.projectId=null;setMainTab('proj');
+  S.projectId=null;S.dedupedOnce=false;setMainTab('proj');
   if(!SH.issuer)setTimeout(()=>{
     if(confirm('自社情報（会社名・振込先・ロゴ・角印）がまだ登録されていません。\n「自社情報ファイル」かバックアップから読み込むか、マスタ登録 → 自社情報 で登録してください。\n\n今すぐマスタ登録を開きますか？')){MS.tab='self';setMainTab('master');}
   },300);
