@@ -965,11 +965,13 @@ function estimateLandscape(totals){
         ${ISSUER.logo?`<img src="${ISSUER.logo}" style="height:52px;display:block;flex-shrink:0"/>`:''}
         <div style="font-weight:700;font-size:20px;letter-spacing:.04em;color:#1a1a1a">${txt(ISSUER.name)}</div>
       </div>
+      <div style="padding-left:14mm">
       <div>${ISSUER.zip}</div>
       <div>${txt(ISSUER.addr.replace('　',' '))}</div>
       <div>TEL ${ISSUER.tel}</div>
       ${ISSUER.fax?`<div>FAX ${ISSUER.fax}</div>`:''}
       ${ISSUER.reg?`<div style="margin-top:3px">登録番号 ${ISSUER.reg}</div>`:''}
+      </div>
       ${ISSUER.stamp?`<img src="${ISSUER.stamp}" style="position:absolute;right:0;bottom:-4px;width:24mm;opacity:.95"/>`:''}
     </div>
   </div>
@@ -3659,7 +3661,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04s';
+const APP_VERSION='2026.10.04t';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
