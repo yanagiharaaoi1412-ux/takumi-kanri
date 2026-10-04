@@ -50,6 +50,14 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 .btn.primary:hover{background:#163a27}
 .btn.sm{padding:3px 8px;font-size:11px}
 .btn.del{color:#c0392b;border-color:#e0b0aa}
+.ldrag{cursor:grab;color:#aaa;text-align:center;font-size:15px;user-select:none;padding:0 2px!important}
+.ldrag:hover{color:#1e4a32}
+.btn.lmv{padding:2px 5px;font-size:10px;color:#666;margin-right:1px}
+.btn.lmv:disabled{opacity:.3;cursor:default}
+.line-row.dragging{opacity:.4}
+.line-row.drop-above td{box-shadow:inset 0 2px 0 #1e4a32}
+.line-row.drop-below td{box-shadow:inset 0 -2px 0 #1e4a32}
+.line-row.moved td{background:#e6f0e9;transition:background .6s}
 .btn.del:hover{background:#fff5f5}
 .bar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #e0e0e0;background:#fff;align-items:center;flex-shrink:0}
 .bar-note{font-size:11px;color:#aaa;margin-left:auto}
@@ -411,6 +419,30 @@ function removeLine(i){
   else F.lines=[{desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''}];
   renderForm();markDirty();
 }
+// ===== 明細の並べ替え（▲▼ボタン・ドラッグ） =====
+function moveLine(from,to){
+  saveFormState();
+  if(to<0||to>=F.lines.length||from===to)return;
+  const [l]=F.lines.splice(from,1);F.lines.splice(to,0,l);
+  renderForm();markDirty();
+  // 動かした行が分かるように少し光らせる
+  const r=document.querySelectorAll('.line-row')[to];if(r){r.classList.add('moved');setTimeout(()=>r.classList.remove('moved'),700);}
+}
+const LDRAG={from:null};
+function lineDragStart(e,i){LDRAG.from=i;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',String(i));}catch{}e.currentTarget.classList.add('dragging');}
+function lineDragOver(e,i){
+  if(LDRAG.from===null)return;
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  const r=e.currentTarget.getBoundingClientRect(),below=e.clientY>r.top+r.height/2;
+  e.currentTarget.classList.toggle('drop-below',below);e.currentTarget.classList.toggle('drop-above',!below);
+}
+function lineDrop(e,i){
+  e.preventDefault();if(LDRAG.from===null)return;
+  const r=e.currentTarget.getBoundingClientRect(),below=e.clientY>r.top+r.height/2;
+  const from=LDRAG.from;let to=i+(below?1:0);if(from<to)to--;
+  LDRAG.from=null;moveLine(from,to);
+}
+function lineDragEnd(){LDRAG.from=null;document.querySelectorAll('.line-row').forEach(r=>{r.draggable=false;r.classList.remove('dragging','drop-above','drop-below');});}
 function updateAmt(i){
   const rows=document.querySelectorAll('.line-row');
   const row=rows[i]; if(!row)return;
@@ -538,17 +570,20 @@ function renderForm(){
     h+=`<div class="sec-title">▸ 明細</div>
     <table class="line-tbl">
       <thead><tr>
-        <th style="width:${d.id==='estimate'?24:30}%">品名・摘要</th>
+        <th style="width:2%" title="⠿ をドラッグ、または ▲▼ で行を並べ替えられます"></th>
+        <th style="width:${d.id==='estimate'?22:27}%">品名・摘要</th>
         <th style="width:7%">数量</th>
         <th style="width:7%">単位</th>
         <th style="width:${d.id==='estimate'?12:16}%">${unitLabel}</th>
         <th style="width:${d.id==='estimate'?11:15}%">${amtLabel}</th>
         ${d.id==='estimate'?`<th style="width:11%;background:#fbfaf3">仕入単価</th><th style="width:10%;background:#fbfaf3">仕入金額 <span style="font-weight:400;color:#aaa;font-size:10px">※帳票に出ません</span></th>`:''}
         <th style="width:${d.id==='estimate'?12:16}%">備考</th>
-        <th style="width:6%"></th>
+        <th style="width:9%"></th>
       </tr></thead>
       <tbody>
-      ${F.lines.map((l,i)=>`<tr class="line-row${isNegLine(l)?' neg-row':''}" data-cost="${l.cost??''}">
+      ${F.lines.map((l,i)=>`<tr class="line-row${isNegLine(l)?' neg-row':''}" data-cost="${l.cost??''}" data-i="${i}"
+          ondragstart="lineDragStart(event,${i})" ondragover="lineDragOver(event,${i})" ondragleave="this.classList.remove('drop-above','drop-below')" ondrop="lineDrop(event,${i})" ondragend="lineDragEnd()">
+        <td class="ldrag" title="ドラッグで並べ替え" onmousedown="this.parentNode.draggable=true" onmouseup="this.parentNode.draggable=false">⠿</td>
         <td><input class="ld" value="${esc(l.desc)}" placeholder="品名・サービス名（値引きはマイナスで入力）" oninput="updateAmt(${i})"/></td>
         <td><input class="lq" type="text" value="${l.qty===0&&l.unitPrice===0?'':l.qty}" style="width:54px" oninput="updateAmt(${i})"/></td>
         <td><select class="lu" style="width:56px;font-size:12px;padding:3px 2px;border:1px solid #ddd;border-radius:4px;font-family:inherit">${[...new Set(['','台','式','件','個','枚',l.unit||''])].map(u=>`<option${(l.unit||'')===u?' selected':''}>${u}</option>`).join('')}</select></td>
@@ -557,7 +592,9 @@ function renderForm(){
         ${d.id==='estimate'?`<td><input class="lc" type="text" value="${l.cost??''}" placeholder="仕入値" oninput="updateAmt(${i})" style="background:#fbfaf3"/></td>
         <td style="text-align:right;padding:3px 6px;font-size:12px;color:#7a6a2a;background:#fbfaf3" id="lca-${i}">${l.cost===''||l.cost==null?'':fmt((parseFloat(l.qty)||0)*(parseFloat(l.cost)||0))}</td>`:''}
         <td><input class="lm" value="${esc(l.memo||'')}" placeholder="備考"/></td>
-        <td><button class="btn sm del" onclick="removeLine(${i})">×</button></td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn sm lmv" title="1行上へ" onclick="moveLine(${i},${i-1})" ${i===0?'disabled':''}>▲</button><button class="btn sm lmv" title="1行下へ" onclick="moveLine(${i},${i+1})" ${i===F.lines.length-1?'disabled':''}>▼</button>
+          <button class="btn sm del" onclick="removeLine(${i})">×</button></td>
       </tr>`).join('')}
       </tbody>
     </table>
@@ -3463,7 +3500,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04l';
+const APP_VERSION='2026.10.04m';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
