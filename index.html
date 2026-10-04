@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1e4a32">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>案件管理・帳票作成ツール</title>
+<title>案件管理・帳票作成システム</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -150,7 +150,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 <div class="sb">
   <div>
     <div id="sb-brand" style="font-weight:700;font-size:14px;color:#1e4a32;line-height:1.4;margin-bottom:2px"></div>
-    <div style="font-size:10px;color:#aaa;letter-spacing:.05em">案件管理・帳票作成ツール <span id="app-ver"></span></div>
+    <div style="font-size:10px;color:#aaa;letter-spacing:.05em">案件管理・帳票作成システム <span id="app-ver"></span></div>
   </div>
   <div class="sb-menu">
     <div class="sb-lbl">メニュー</div>
@@ -172,7 +172,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 <!-- Main -->
 <div class="main-area">
   <div id="ver-banner" style="display:none;align-items:center;gap:10px;background:#fdf1e0;border-bottom:1px solid #f0d9b5;padding:8px 16px;font-size:12.5px;color:#7a4a00">
-    🔄 ツールが新しい版に更新されています。保存してから、ページを再読み込みしてください。
+    🔄 システムが新しい版に更新されています。保存してから、ページを再読み込みしてください。
     <button class="btn sm" style="margin-left:auto" onclick="location.reload()">再読み込み</button>
   </div>
   <div class="main-tabs" id="editor-tabs">
@@ -1957,7 +1957,7 @@ async function readQuoteFile(file){
     // プレビュー画面など、バックグラウンド処理（Worker）が使えない環境
     if(/Worker|SecurityError|blob/i.test(msg)){
       tessWorkers=null;tessPageWorker=null;
-      st.innerHTML=`<span style="color:#c0392b">この画面では、画像から文字を読み取る処理が使えません。<br>ツールのファイルをパソコンに保存し、ChromeかEdgeで直接開いてから、もう一度お試しください。</span>`;
+      st.innerHTML=`<span style="color:#c0392b">この画面では、画像から文字を読み取る処理が使えません。<br>システムのファイルをパソコンに保存し、ChromeかEdgeで直接開いてから、もう一度お試しください。</span>`;
     } else st.innerHTML=`<span style="color:#c0392b">${esc(msg||'読み取りに失敗しました')}</span>`;
   }
 }
@@ -2433,7 +2433,7 @@ function openPastImport(){
         <div style="font-size:15px;font-weight:700;color:#1e4a32">過去の見積書から案件を作る</div>
         <button class="btn sm" style="margin-left:auto" onclick="document.getElementById('pj-modal').innerHTML=''">閉じる</button>
       </div>
-      <div style="font-size:11.5px;color:#666;margin:6px 0 12px">このツールを使う前に作った見積書（PDF・写真）を選ぶと、宛先・工事名・工事場所・見積番号・発行日・明細を読み取り、1ファイルにつき1つの案件として登録します（見積書は「発行済」、番号もそのまま）。複数まとめて選べます。</div>
+      <div style="font-size:11.5px;color:#666;margin:6px 0 12px">このシステムを使う前に作った見積書（PDF・写真）を選ぶと、宛先・工事名・工事場所・見積番号・発行日・明細を読み取り、1ファイルにつき1つの案件として登録します（見積書は「発行済」、番号もそのまま）。複数まとめて選べます。</div>
       <label class="btn primary" style="cursor:pointer">📄 見積書を選ぶ（複数可）<input type="file" multiple accept="application/pdf,.pdf,image/*" style="display:none" onchange="readPastFiles(this)"/></label>
       <label style="font-size:12px;margin-left:10px"><input type="checkbox" id="past-keep" checked/> 元のファイルも案件の「もらった書類」に保存する</label>
       <div id="past-status" style="font-size:12px;color:#666;margin-top:8px"></div>
@@ -2749,7 +2749,7 @@ function renderProjects(){
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">案件一覧</div>
     <button class="btn primary" onclick="openProjEditor()">＋ 新規案件</button>
-    <button class="btn" onclick="openPastImport()" title="このツールを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
+    <button class="btn" onclick="openPastImport()" title="このシステムを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
     <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所・担当で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <select onchange="P.status=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
@@ -3556,11 +3556,11 @@ async function exportAll(){
     for(const f of all){const {blob,...meta}=f;files.push({...meta,data:await blobToDataURL(blob)});}
   }catch(e){console.warn(e);}
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(hanhyo_seq_|takumi_proj_seq_)/.test(k))seq[k]=localStorage.getItem(k);}
-  const data={app:'案件管理・帳票作成ツール',version:2,exportedAt:new Date().toISOString(),
+  const data={app:'案件管理・帳票作成システム',version:2,exportedAt:new Date().toISOString(),
     projects:getProjects(),customers:getCustomers(),received:getReceived(),issuer:shared()?SH.issuer:JSON.parse(localStorage.getItem(ISSUER_KEY)||'null'),seq,files};
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
-  a.download=`案件管理・帳票作成ツール_バックアップ_${todayStr()}.json`;
+  a.download=`案件管理・帳票作成システム_バックアップ_${todayStr()}.json`;
   document.body.appendChild(a);a.click();a.remove();
 }
 async function importAll(input){
@@ -3583,8 +3583,8 @@ async function importAll(input){
 }
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
-// ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04p';
+// システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
+const APP_VERSION='2026.10.04q';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
@@ -3779,7 +3779,7 @@ function shVersionCheck(){
 
 // --- 接続 ---
 async function connectSharedFolder(){
-  if(!window.showDirectoryPicker){alert('このブラウザでは共有フォルダを使えません。\nChromeかEdgeでツールを開いてください。');return;}
+  if(!window.showDirectoryPicker){alert('このブラウザでは共有フォルダを使えません。\nChromeかEdgeでシステムを開いてください。');return;}
   let dir;
   try{dir=await window.showDirectoryPicker({id:'takumi-shared',mode:'readwrite'});}
   catch(e){if(e&&e.name==='AbortError')return;alert('フォルダを開けませんでした：'+(e.message||e));return;}
@@ -3796,7 +3796,7 @@ async function startShared(dir,fresh){
     try{await kvSet('sharedDir',dir);}catch{}
     await offerMigration();
     // フォルダの説明書き
-    shEnqueue(()=>shWriteFile('','このフォルダについて.txt','案件管理・帳票作成ツールの共有データです。\r\n中のファイルは手で編集・削除しないでください。\r\n「data」に案件などの情報、「files」にもらった見積書などのファイルが入っています。\r\n'));
+    shEnqueue(()=>shWriteFile('','このフォルダについて.txt','案件管理・帳票作成システムの共有データです。\r\n中のファイルは手で編集・削除しないでください。\r\n「data」に案件などの情報、「files」にもらった見積書などのファイルが入っています。\r\n'));
   }
   localStorage.setItem('takumi_mode','folder');
   if(!SH.remoteVer||SH.remoteVer<APP_VERSION){SH.remoteVer=APP_VERSION;shEnqueue(()=>shWriteFile('data/settings','app.json',JSON.stringify({version:APP_VERSION})));}
@@ -3931,16 +3931,16 @@ function renderInstallGuide(done){
       <button class="btn primary" style="padding:9px 22px;font-size:14px" onclick="doInstall()">📲 今すぐインストール</button>
       <div style="font-size:11px;color:#888;margin-top:6px">うまくいかないときは、下の手順で入れてください。</div></div>`:'';
   const body={
-    pc:`${step(1,`Edge か Chrome でこのツールを開きます。`)}
+    pc:`${step(1,`Edge か Chrome でこのシステムを開きます。`)}
       ${step(2,`アドレスバーの右側に出るマークを押します。<br><span style="font-size:12px;color:#555">・Edge：四角が並んだ「アプリを利用できます」のマーク<br>・Chrome：パソコンの画面に↓が付いたマーク</span>`)}
       ${step(3,`${k('インストール')} を押します。`)}
       ${step(4,`${k('デスクトップにショートカットを作成')}・${k('タスクバーにピン留め')} にチェックを入れて ${k('許可')} を押します。`)}
       <div style="font-size:12px;color:#666;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:8px 10px;line-height:1.7">マークが出ないとき：<br>・Edge：右上の ${k('…')} → ${k('アプリ')} → ${k('このサイトをアプリとしてインストール')}<br>・Chrome：右上の ${k('︙')} → ${k('キャスト、保存、共有')} → ${k('ページをアプリとしてインストール')}<br>それでも出ないときは ${k('Ctrl')}＋${k('F5')} で読み込み直してから、もう一度お試しください。</div>`,
-    iphone:`${step(1,`<b>Safari</b> でこのツールを開きます。<span style="font-size:12px;color:#b86e00">（Chrome など他のアプリからだと追加できないことがあります）</span>`)}
+    iphone:`${step(1,`<b>Safari</b> でこのシステムを開きます。<span style="font-size:12px;color:#b86e00">（Chrome など他のアプリからだと追加できないことがあります）</span>`)}
       ${step(2,`画面下の共有ボタン ${k('□に↑')} を押します。`)}
       ${step(3,`メニューを下にずらして ${k('ホーム画面に追加')} を押します。`)}
       ${step(4,`右上の ${k('追加')} を押します。ホーム画面に「匠」のアイコンができます。`)}`,
-    android:`${step(1,`<b>Chrome</b> でこのツールを開きます。`)}
+    android:`${step(1,`<b>Chrome</b> でこのシステムを開きます。`)}
       ${step(2,`右上の ${k('︙')} を押します。`)}
       ${step(3,`${k('アプリをインストール')} または ${k('ホーム画面に追加')} を押します。`)}
       ${step(4,`${k('インストール')}（または ${k('追加')}）を押します。ホーム画面に「匠」のアイコンができます。`)}`
@@ -3949,13 +3949,13 @@ function renderInstallGuide(done){
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:560px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <img src="icon-192.png" alt="" style="width:40px;height:40px;border-radius:8px" onerror="this.style.display='none'"/>
-        <div><div style="font-size:15px;font-weight:700;color:#1e4a32">パソコン・スマホにツールを入れる</div>
+        <div><div style="font-size:15px;font-weight:700;color:#1e4a32">パソコン・スマホにシステムを入れる</div>
         <div style="font-size:11.5px;color:#777">入れておくと、デスクトップやホーム画面の「匠」アイコンからすぐ開けます。</div></div>
       </div>
       ${done?`<div style="background:#eef5f0;border:1px solid #c9dccf;border-radius:8px;padding:14px;margin:14px 0;font-size:13px;color:#1e4a32;text-align:center">✓ インストールしました。次からは「匠」のアイコンから開けます。</div>`:`
       <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin:12px 0 14px;flex-wrap:wrap">${tb('pc','💻 パソコン')}${tb('iphone','📱 iPhone')}${tb('android','📱 Android')}</div>
       ${quick}${body}
-      <div style="font-size:11.5px;color:#888;margin-top:12px;line-height:1.7">・ツールのアドレス：<span style="user-select:all;color:#1e4a32">${esc(location.origin+location.pathname)}</span><br>・アイコンから開いても中身は同じです。ログイン状態やツールの更新もそのまま反映されます。</div>`}
+      <div style="font-size:11.5px;color:#888;margin-top:12px;line-height:1.7">・システムのアドレス：<span style="user-select:all;color:#1e4a32">${esc(location.origin+location.pathname)}</span><br>・アイコンから開いても中身は同じです。ログイン状態やシステムの更新もそのまま反映されます。</div>`}
       <div style="text-align:right;margin-top:14px"><button class="btn" onclick="closeInstallGuide()">閉じる</button></div>
     </div></div>`;
 }
@@ -3979,7 +3979,7 @@ async function cloudInit(){
   SH.backend='cloud';
   showCloudOverlay('loading');
   try{await cloudClient();}
-  catch(e){showCloudOverlay('error','インターネットに接続できないため、ツールを開けません。接続を確認して、ページを再読み込みしてください。');return;}
+  catch(e){showCloudOverlay('error','インターネットに接続できないため、システムを開けません。接続を確認して、ページを再読み込みしてください。');return;}
   const {data}=await SH.sb.auth.getSession();
   if(data&&data.session){SH.user=data.session.user;await cloudStart();}
   else showCloudOverlay('login');
@@ -4143,7 +4143,7 @@ function showCloudOverlay(kind,text){
   const box=inner=>`<div style="position:fixed;inset:0;background:#f5f5f5;z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px">
     <div style="background:#fff;border:1px solid #d5e3d9;border-radius:12px;padding:26px 28px;width:380px;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.06)">
       <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${esc(ISSUER.name||'')}</div>
-      <div style="font-size:11px;color:#999;margin-bottom:16px">案件管理・帳票作成ツール</div>${inner}</div></div>`;
+      <div style="font-size:11px;color:#999;margin-bottom:16px">案件管理・帳票作成システム</div>${inner}</div></div>`;
   if(kind==='name'){
     const m=(SH.user&&SH.members[SH.user.id])||{};const again=!!SH.started;
     el.innerHTML=box(`
