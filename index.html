@@ -445,6 +445,14 @@ window.addEventListener('beforeunload',e=>{
   if(AUTO.dirty)autoSaveNow();
   if(AUTO.dirty||(typeof SH!=='undefined'&&SH.pending)){e.preventDefault();e.returnValue='';}
 });
+// ===== 単位の候補（よく使うもの＋これまでの帳票で使ったもの）。一覧にない単位も直接入力できる =====
+const UNIT_PRESETS=['式','一式','台','本','個','枚','件','箇所','ヶ所','組','セット','m','㎡','㎥','坪','帖','人工','人','日','時間','回','ヶ月','缶','袋','巻','束','箱','kg','t','L','基','面','室','戸','棟','缶'];
+function unitOptions(){
+  const set=new Set(UNIT_PRESETS);
+  try{getProjects().forEach(p=>(p.docs||[]).forEach(d=>((d.F&&d.F.lines)||[]).forEach(l=>{const u=String(l.unit||'').trim();if(u&&u.length<=6)set.add(u);})));}catch{}
+  (F.lines||[]).forEach(l=>{const u=String(l.unit||'').trim();if(u&&u.length<=6)set.add(u);});
+  return [...set];
+}
 function addLine(){saveFormState();F.lines.push({desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''});renderForm();markDirty();}
 function removeLine(i){
   saveFormState();
@@ -634,7 +642,7 @@ function renderForm(){
         <td class="ldrag" title="ドラッグで並べ替え" onmousedown="this.parentNode.draggable=true" onmouseup="this.parentNode.draggable=false" ontouchstart="lineTouchStart(event,${i})">⠿</td>
         <td><input class="ld" value="${esc(l.desc)}" placeholder="品名・サービス名（値引きはマイナスで入力）" oninput="updateAmt(${i})"/></td>
         <td><input class="lq" type="text" value="${l.qty===0&&l.unitPrice===0?'':l.qty}" style="width:54px" oninput="updateAmt(${i})"/></td>
-        <td><select class="lu" style="width:56px;font-size:12px;padding:3px 2px;border:1px solid #ddd;border-radius:4px;font-family:inherit">${[...new Set(['','台','式','件','個','枚',l.unit||''])].map(u=>`<option${(l.unit||'')===u?' selected':''}>${u}</option>`).join('')}</select></td>
+        <td><input class="lu" list="unit-list" value="${esc(l.unit||'')}" placeholder="単位" autocomplete="off" style="width:64px"/></td>
         <td><input class="lp" type="text" value="${l.unitPrice===0&&l.qty===0?'':l.unitPrice||''}" oninput="updateAmt(${i})"/></td>
         <td style="text-align:right;padding:3px 6px;font-size:12px" id="la-${i}">${(l.qty===''&&l.unitPrice==='')?'':fmt(lineAmt(l))}</td>
         ${d.id==='estimate'?`<td><input class="lc" type="text" value="${l.cost??''}" placeholder="仕入値" oninput="updateAmt(${i})" style="background:#fbfaf3"/></td>
@@ -645,6 +653,7 @@ function renderForm(){
       </tr>`).join('')}
       </tbody>
     </table>
+    <datalist id="unit-list">${unitOptions().map(u=>`<option value="${esc(u)}"></option>`).join('')}</datalist>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
       <button class="btn sm" onclick="addLine()">＋ 行追加</button>
       <button class="btn sm" onclick="openPasteModal()" style="color:#1e4a32;border-color:#1e4a32">📋 Excelから貼り付け</button>
@@ -3688,7 +3697,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.05d';
+const APP_VERSION='2026.10.05e';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
