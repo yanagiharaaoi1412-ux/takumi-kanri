@@ -2852,7 +2852,7 @@ function renderProjects(){
     <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">案件一覧</div>
     <button class="btn primary" onclick="openProjEditor()">＋ 新規案件</button>
     <button class="btn" onclick="openPastImport()" title="このシステムを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
-    <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所・担当で検索"
+    <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所${STAFF_ON()?"・担当":""}で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <select onchange="P.status=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
       <option value="">すべてのステータス</option>
@@ -3688,7 +3688,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.05b';
+const APP_VERSION='2026.10.05c';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
