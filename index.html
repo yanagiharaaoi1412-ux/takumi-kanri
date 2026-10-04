@@ -1275,6 +1275,117 @@ async function ocrCell(canvas,kind){
 }
 // OCR結果の整形：「\964, 280」→「¥964,280」
 function ocrTidy(t){return String(t||'').replace(/\\(?=\d)/g,'¥').replace(/(\d)[,，]\s+(\d{3})/g,'$1,$2');}
+
+// ---------- 表になっていない書類（文章だけ）の読み取り ----------
+// 1ページ全体を文字認識して文章にする（スキャンPDF・写真用）
+let tessPageWorker=null;
+async function ocrPageText(canvas){
+  if(window.__ocrStub)return window.__ocrStub(canvas.toDataURL('image/png'),'page');
+  if(!tessPageWorker){await loadTesseract();tessPageWorker=await Tesseract.createWorker('jpn');await tessPageWorker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});}
+  const {data}=await tessPageWorker.recognize(canvas);
+  return data.text||'';
+}
+async function renderPageCanvas(page){
+  const vp0=page.getViewport({scale:1});let scale=300/72;
+  const maxDim=Math.max(vp0.width,vp0.height)*scale;if(maxDim>4300)scale*=4300/maxDim;
+  const vp=page.getViewport({scale});
+  const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  await page.render({canvasContext:ctx,viewport:vp}).promise;return cv;
+}
+async function imageFileCanvas(file){
+  const bmp=await createImageBitmap(file);
+  let s=1;const m=Math.max(bmp.width,bmp.height);if(m<1800)s=1800/m;if(m*s>4300)s=4300/m;
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);
+  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(bmp,0,0,cv.width,cv.height);return cv;
+}
+// PDF・写真 → 文章（文字情報があればそのまま、なければ文字認識）
+async function fileToText(file,onStatus){
+  const isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+  if(!isPdf){onStatus&&onStatus('写真から文字を読み取っています…');return {text:cjkTight(ocrTidy(await ocrPageText(await imageFileCanvas(file)))),ocr:true};}
+  const {pages,chars,pdf}=await pdfToRows(file);
+  if(chars>=15)return {text:pages.map(rows=>rows.map(r=>r.cells.map(c=>c.text).join('  ')).join('\n')).join('\n'),ocr:false,pages,pdf};
+  const out=[];
+  for(let pn=1;pn<=pdf.numPages;pn++){
+    onStatus&&onStatus(`スキャンしたPDFのため、画像から文字を読み取っています…${pdf.numPages>1?`（${pn}/${pdf.numPages}ページ）`:''}`);
+    out.push(await ocrPageText(await renderPageCanvas(await pdf.getPage(pn))));
+  }
+  return {text:cjkTight(ocrTidy(out.join('\n'))),ocr:true,pdf,scanned:true};
+}
+// 日付：2025年8月31日 / 2025/8/31 / 令和7年8月31日 / R7.8.31
+function parseJDate(s){
+  s=zen2han(s||'');
+  let m=s.match(/(20\d{2})\s*[年\/\.\-]\s*(\d{1,2})\s*[月\/\.\-]\s*(\d{1,2})/);
+  if(!m){const r=s.match(/(?:令和|R)\s*(\d{1,2}|元)\s*[年\.\/]\s*(\d{1,2})\s*[月\.\/]\s*(\d{1,2})/);if(r)m=[0,2018+(r[1]==='元'?1:+r[1]),r[2],r[3]];}
+  if(!m)return '';
+  const y=+m[1],mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)return '';
+  return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function findLabeledDate(lines,re){
+  for(let i=0;i<lines.length;i++)if(re.test(lines[i])){const d=parseJDate(lines[i])||parseJDate(lines[i+1]||'');if(d)return d;}
+  return '';
+}
+const LABEL_TOTAL=/(御?請求金額|ご請求金額|ご請求額|請求額|今回(?:ご)?請求額|御?見積金額|お見積(?:り)?金額|御見積合計|税込合計|総合計|合計金額|お支払(?:い)?金額|合計)/;
+// 合計金額・税込/税抜・消費税・日付・相手先を探す
+function readDocSummary(text){
+  const t=zen2han(text||'');const lines=t.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  let best=null;
+  lines.forEach((ln,i)=>{
+    const m=ln.match(LABEL_TOTAL);if(!m)return;
+    const after=ln.slice(m.index+m[0].length)+' '+(lines[i+1]||'');
+    const n=after.match(/[¥￥]?\s*(-?\d{1,3}(?:,\d{3})+|-?\d{3,})\s*(?:円|-|\.-)?/);if(!n)return;
+    const v=toNum(n[1]);if(v===null)return;
+    const ctx=ln+' '+(lines[i+1]||'');
+    const inc=/税込|内税|消費税込/.test(ctx)?true:/税抜|税別|外税/.test(ctx)?false:null;
+    const prio=/請求|見積|総合計|税込合計|お支払/.test(m[1])?2:1;
+    if(!best||prio>best.prio||(prio===best.prio&&v>best.amount))best={amount:v,inc,prio,label:m[1]};
+  });
+  let tax='';
+  for(const ln of lines){if(/消費税/.test(ln)&&!/込|抜|別/.test(ln.replace(/\(?10%\)?/,''))||/^.{0,6}消費税/.test(ln)){const n=ln.match(/([\d,]{2,})\s*円?\s*$/);if(n){tax=toNum(n[1]);break;}}}
+  const due=findLabeledDate(lines,/支払期限|お支払(?:い)?期限|振込期限|お振込(?:み)?期限|支払期日|お支払(?:い)?期日|支払日|お支払(?:い)?予定日/);
+  const date=findLabeledDate(lines,/請求日|発行日|見積日|作成日|発行年月日/)||(()=>{for(const l of lines){if(/期限|期日|有効/.test(l))continue;const d=parseJDate(l);if(d)return d;}return '';})();
+  let no='';for(const l of lines){const r=l.match(/(?:請求書|見積書)?\s*(?:番号|No\.?|NO\.?|№)\s*[:：]?\s*([A-Za-z0-9\-]{3,})/);if(r){no=r[1];break;}}
+  const own=(ISSUER.name||'').replace(/\s/g,'');
+  let vendor='';
+  for(const l of lines){
+    const c=l.replace(/\s/g,'');
+    if(!/(株式会社|有限会社|合同会社|\(株\)|（株）|\(有\)|（有）|工業|建材|商会|商店|工務店|設備)/.test(c))continue;
+    if(/御中|様|殿/.test(c)||(own&&c.includes(own)))continue;
+    vendor=l.replace(/\s{2,}.*$/,'').replace(/(TEL|FAX|〒).*$/,'').trim();if(vendor)break;
+  }
+  return {amount:best?best.amount:'',inc:best?best.inc:null,tax,due,date,no,vendor};
+}
+// 文章の各行から「品名＋金額」を探す
+const SKIP_LINE=/(支払|振込|期限|期日|有効|口座|銀行|支店|普通預金|当座|名義|TEL|FAX|〒|登録番号|発行日|請求日|見積日|作成日|住所|担当|電話|メール|http|@)/;
+function parsePlainLines(text){
+  const out=[];
+  for(const raw of String(text||'').split(/\r?\n/)){
+    let t=zen2han(raw).replace(/[■□●○◆◇◎★☆※・]/g,' ').replace(/\s+/g,' ').trim();
+    if(!t||SKIP_LINE.test(t))continue;
+    const m=t.match(/^(.*?)[\s:：…\.\-=＝]*(?:[¥￥]\s*)?(-?\d{1,3}(?:,\d{3})+|-?\d+)\s*(?:円|\.-|-)?\s*(?:[（(]\s*(税込|税抜|税別)\s*[)）])?\s*$/);
+    if(!m)continue;
+    let head=m[1].replace(/[\s:：…\.\-=＝]+$/,'').trim();
+    const amt=toNum(m[2]);
+    if(amt===null||!head||toNum(head)!==null)continue;
+    if(Math.abs(amt)<100&&!/[¥￥円]/.test(t))continue;   // 数量だけの行などは除外
+    let qty=1,unit='式',desc=head;
+    const q=head.match(/^(.*?)[\s]*(?:[x×＊*]\s*)?(\d+(?:\.\d+)?)\s*(式|台|個|枚|本|m2|m3|㎡|㎥|m|箇所|ヶ所|カ所|か所|ケ所|セット|組|人工|日|回|缶|袋|巻|kg|t|L|基|面|箱|件|ヶ月|月|時間|坪)\s*$/);
+    if(q&&q[1].trim()){desc=q[1].trim();qty=+q[2];unit=q[3];}
+    desc=desc.replace(/[\s:：…\.\-=＝]+$/,'');
+    const neg=/値引|割引|出精|調整/.test(desc)&&amt>0?-1:1;
+    const total=LABEL_TOTAL.test(desc.replace(/\s/g,''))||/消費税|小計/.test(desc);
+    out.push({desc,qty,unit,price:qty?Math.round(amt*neg/qty*100)/100:amt*neg,amount:amt*neg,memo:'',kind:total?'total':'item'});
+  }
+  return out;
+}
+// 文章から仕入見積の行を作る：品目が見つからなければ合計を「一式」1行に
+function plainToImportLines(text,fallbackName){
+  const lines=parsePlainLines(text);
+  const sum=readDocSummary(text);
+  if(lines.some(l=>l.kind==='item'))return {lines,sum,mode:'lines'};
+  if(sum.amount!=='')return {lines:[{desc:fallbackName||'一式',qty:1,unit:'式',price:sum.amount,amount:sum.amount,memo:'',kind:'item'}],sum,mode:'total'};
+  return {lines:[],sum,mode:'none'};
+}
 async function renderPageGray(page){
   const vp0=page.getViewport({scale:1});
   let scale=300/72;
@@ -1540,9 +1651,14 @@ function openPdfImport(){
         <div style="font-size:15px;font-weight:700;color:#1e4a32">仕入見積PDFの取り込み</div>
         <button class="btn sm" style="margin-left:auto" onclick="closePdfImport()">閉じる</button>
       </div>
-      <div style="font-size:11.5px;color:#666;margin:6px 0 12px">仕入れ先の見積書PDFを選ぶと、明細を読み取ります。品目ごとに掛け率（または販売単価）を決めて、見積書に取り込めます。</div>
-      <label class="btn primary" style="cursor:pointer">📄 PDFを選ぶ<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="IMP.storedId=null;readQuotePdf(this)"/></label>
-      ${S.projectId?`<label style="font-size:12px;margin-left:10px"><input type="checkbox" id="imp-keep" checked/> 選んだPDFをこの案件の「もらった見積書」に保存する</label>`:''}
+      <div style="font-size:11.5px;color:#666;margin:6px 0 12px">仕入れ先の見積書（PDF・写真）を選ぶか、メールなどの文章を貼り付けると、明細を読み取ります。明細がない書類は合計金額を1行で読み取ります。品目ごとに掛け率（または販売単価）を決めて、見積書に取り込めます。</div>
+      <label class="btn primary" style="cursor:pointer">📄 PDF・写真を選ぶ<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="IMP.storedId=null;readQuotePdf(this)"/></label>
+      <button class="btn" style="margin-left:6px" onclick="const b=document.getElementById('imp-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
+      ${S.projectId?`<label style="font-size:12px;margin-left:10px"><input type="checkbox" id="imp-keep" checked/> 選んだファイルをこの案件の「もらった書類」に保存する</label>`:''}
+      <div id="imp-paste" style="display:none;margin-top:10px">
+        <textarea id="imp-text" placeholder="メールやLINEの見積もりの文章を、ここに貼り付けてください&#10;例）玄関ドア交換　1式　380,000円&#10;　　取付工事　45,000円" style="width:100%;height:110px;font-size:12px;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea>
+        <button class="btn primary sm" style="margin-top:6px" onclick="readQuoteText()">読み取る</button>
+      </div>
       <div id="imp-status" style="font-size:12px;color:#666;margin-top:8px;line-height:1.6"></div>
       <div id="imp-body"></div>
     </div></div>`;
@@ -1560,36 +1676,68 @@ async function readQuotePdf(input){
 }
 async function readQuoteFile(file){
   const st=document.getElementById('imp-status');
-  const keepEl=document.getElementById('imp-keep');if(keepEl&&IMP.storedId)keepEl.parentNode.innerHTML='<span style="color:#1e4a32">✓ このPDFは案件に保存されています</span>';
+  const keepEl=document.getElementById('imp-keep');if(keepEl&&IMP.storedId)keepEl.parentNode.innerHTML='<span style="color:#1e4a32">✓ このファイルは案件に保存されています</span>';
   st.textContent='読み取り中…';
   try{
-    const {pages,chars,pdf}=await pdfToRows(file);
-    let lines,headerFound,ocr=false;
-    if(chars<15){
-      // 文字情報がない（スキャンした）PDF：画像から文字を読み取る
-      ocr=true;IMP.rows=[];renderImpTable();
-      st.innerHTML='スキャンしたPDFのため、画像から文字を読み取っています…<br><span style="font-size:11px;color:#888">初回は読み取り用データのダウンロードに少し時間がかかります</span>';
-      const r=await ocrQuoteFromPdf(pdf,(n,t,pn,pt)=>{st.innerHTML=`画像から文字を読み取っています… ${Math.round(n/t*100)}%${pt>1?`（${pn}/${pt}ページ）`:''}`;});
-      if(!r.tableFound){st.innerHTML='<span style="color:#c0392b">表（罫線で囲まれた明細）を見つけられませんでした。手入力してください。</span>';return;}
-      lines=classifyLines(r.lines);headerFound=true;
-    } else {
-      ({lines,headerFound}=parseQuoteRows(pages));
+    const isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+    let lines=[],headerFound=true,ocr=false,plain=null;
+    if(isPdf){
+      const {pages,chars,pdf}=await pdfToRows(file);
+      if(chars<15){
+        // 文字情報がない（スキャンした）PDF：まず表のマス目を探して読み取る
+        ocr=true;IMP.rows=[];renderImpTable();
+        st.innerHTML='スキャンしたPDFのため、画像から文字を読み取っています…<br><span style="font-size:11px;color:#888">初回は読み取り用データのダウンロードに少し時間がかかります</span>';
+        const r=await ocrQuoteFromPdf(pdf,(n,t,pn,pt)=>{st.innerHTML=`画像から文字を読み取っています… ${Math.round(n/t*100)}%${pt>1?`（${pn}/${pt}ページ）`:''}`;});
+        if(r.tableFound)lines=classifyLines(r.lines);
+      } else {
+        ({lines,headerFound}=parseQuoteRows(pages));
+      }
+    }
+    // 表が見つからない・明細がない → 文章として読み取る（合計だけの書類にも対応）
+    if(!lines.some(l=>l.kind==='item')){
+      const {text,ocr:o2}=await fileToText(file,m=>{st.textContent=m;});
+      ocr=ocr||o2;
+      plain=plainToImportLines(text,F.subject?F.subject+' 一式':'一式');
+      lines=plain.lines;
     }
     const items=lines.filter(l=>l.kind==='item');
-    if(!items.length){IMP.rows=[];renderImpTable();st.innerHTML='<span style="color:#c0392b">明細の表を見つけられませんでした。</span>';return;}
+    if(!items.length){IMP.rows=[];renderImpTable();st.innerHTML='<span style="color:#c0392b">明細も合計金額も見つけられませんでした。手入力してください。</span>';return;}
     IMP.file=file.name;
-    IMP.rows=lines.map(l=>({on:l.kind==='item',kind:l.kind,desc:l.desc,qty:l.qty??'',unit:l.unit||'',cost:l.price??'',rate:'',price:'',manual:false,memo:l.memo||''}));
-    st.innerHTML=`「${esc(file.name)}」から <b>${items.length}</b> 行を読み取りました${ocr?'<br><span style="color:#b86e00">画像から読み取ったため、読み間違いがあるかもしれません。品名・数量・金額を必ず確認してください。</span>':headerFound?'':'（表の見出しが見つからないため推定で読み取りました。内容をよく確認してください）'}`;
+    applyImportLines(lines,plain);
+    const note=ocr?'<br><span style="color:#b86e00">画像から読み取ったため、読み間違いがあるかもしれません。品名・数量・金額を必ず確認してください。</span>':'';
+    st.innerHTML=plain&&plain.mode==='total'
+      ?`「${esc(file.name)}」には明細の表がないため、<b>合計金額 ${fmtY(plain.sum.amount)}${plain.sum.inc===true?'（税込）':plain.sum.inc===false?'（税抜）':''}</b> を1行で読み取りました。品名は必要に応じて直してください。${note}`
+      :`「${esc(file.name)}」から <b>${items.length}</b> 行を読み取りました${plain?'（表がないため文章から読み取りました。内容を確認してください）':headerFound?'':'（表の見出しが見つからないため推定で読み取りました。内容をよく確認してください）'}${note}`;
     renderImpTable();
   }catch(e){
     console.error(e);
     const msg=String(e&&(e.message||e));
     // プレビュー画面など、バックグラウンド処理（Worker）が使えない環境
     if(/Worker|SecurityError|blob/i.test(msg)){
-      tessWorkers=null;
+      tessWorkers=null;tessPageWorker=null;
       st.innerHTML=`<span style="color:#c0392b">この画面では、画像から文字を読み取る処理が使えません。<br>ツールのファイルをパソコンに保存し、ChromeかEdgeで直接開いてから、もう一度お試しください。</span>`;
     } else st.innerHTML=`<span style="color:#c0392b">${esc(msg||'読み取りに失敗しました')}</span>`;
   }
+}
+function applyImportLines(lines,plain){
+  IMP.rows=lines.map(l=>({on:l.kind==='item',kind:l.kind,desc:l.desc,qty:l.qty??'',unit:l.unit||'',cost:l.price??'',rate:'',price:'',manual:false,memo:l.memo||''}));
+  // 税込・税抜が文章から分かれば合わせる
+  if(plain&&plain.sum&&plain.sum.inc!==null)IMP.basis=plain.sum.inc?'inc':'exc';
+}
+// 貼り付けた文章から読み取る
+function readQuoteText(){
+  const ta=document.getElementById('imp-text');const text=ta?ta.value:'';
+  const st=document.getElementById('imp-status');
+  if(!text.trim()){st.innerHTML='<span style="color:#c0392b">文章を貼り付けてください</span>';return;}
+  const plain=plainToImportLines(text,F.subject?F.subject+' 一式':'一式');
+  if(!plain.lines.length){IMP.rows=[];renderImpTable();st.innerHTML='<span style="color:#c0392b">金額の書かれた行が見つかりませんでした。</span>';return;}
+  IMP.file='貼り付けた文章';IMP.storedId=null;
+  applyImportLines(plain.lines,plain);
+  const n=plain.lines.filter(l=>l.kind==='item').length;
+  st.innerHTML=plain.mode==='total'
+    ?`明細がないため、<b>合計金額 ${fmtY(plain.sum.amount)}${plain.sum.inc===true?'（税込）':plain.sum.inc===false?'（税抜）':''}</b> を1行で読み取りました。品名は必要に応じて直してください。`
+    :`文章から <b>${n}</b> 行を読み取りました。内容を確認してください。`;
+  renderImpTable();
 }
 const roundTo=(v,u)=>Math.round(v/u)*u;
 // 仕入単価（仕入見積の税区分）→ この見積書の税区分に換算
@@ -1769,7 +1917,7 @@ async function renderProjFiles(pid){
   const hasEst=!!(getProject(pid)||{}).docs;
   box.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span style="font-size:11px;color:#666;font-weight:600">もらった見積書（${list.length}件）</span>
+      <span style="font-size:11px;color:#666;font-weight:600">もらった書類（見積書・請求書など）（${list.length}件）</span>
       <label class="btn sm" style="margin-left:auto;cursor:pointer">＋ ファイルを追加<input type="file" multiple accept="application/pdf,.pdf,image/*" style="display:none" onchange="addProjFiles('${pid}',this)"/></label>
     </div>
     <div id="pj-drop" ondragover="event.preventDefault();this.style.background='#eef5f0'" ondragleave="this.style.background=''" ondrop="event.preventDefault();this.style.background='';addProjFiles('${pid}',{files:event.dataTransfer.files,value:''})"
@@ -1780,7 +1928,7 @@ async function renderProjFiles(pid){
         <td style="padding:6px 4px;width:190px"><input value="${esc(f.vendor||'')}" placeholder="仕入れ先" onchange="updProjFile('${f.id}',{vendor:this.value.trim()})"
           style="width:100%;font-size:12px;padding:3px 6px;border:1px solid #e3e3e3;border-radius:4px;font-family:inherit"/></td>
         <td style="padding:6px 4px;text-align:right;white-space:nowrap">
-          ${/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)?`<button class="btn sm" style="color:#1e4a32;border-color:#1e4a32" onclick="importProjFileToEstimate('${pid}','${f.id}')" title="見積書を開いて、このPDFの明細を取り込む">→ 見積書に取り込む</button>`:''}
+          ${/pdf|image/i.test(f.type)||/\.(pdf|jpe?g|png|heic|webp)$/i.test(f.name)?`<button class="btn sm" style="color:#1e4a32;border-color:#1e4a32" onclick="importProjFileToEstimate('${pid}','${f.id}')" title="見積書を開いて、このPDFの明細を取り込む">→ 見積書に取り込む</button>`:''}
           <button class="btn sm" onclick="downloadProjFile('${f.id}')" title="パソコンに保存">⬇</button>
           <button class="btn sm del" onclick="deleteProjFile('${pid}','${f.id}')">×</button>
         </td></tr>`).join('')}</table>`
@@ -2248,7 +2396,7 @@ function renderProjDetail(){
         <td style="padding:6px 4px;text-align:right;white-space:nowrap"><button class="btn sm" onclick="openRcvEditor('${r.id}')">編集</button></td></tr>`).join('')}</table>`
       :`<div style="font-size:12px;color:#aaa;padding:6px 0">まだありません</div>`}
     </div>`;})()}
-    <div style="margin-top:14px" id="pj-files"><div style="font-size:11px;color:#aaa">もらった見積書を読み込み中…</div></div>
+    <div style="margin-top:14px" id="pj-files"><div style="font-size:11px;color:#aaa">もらった書類を読み込み中…</div></div>
     <div style="margin-top:14px">
       <div style="font-size:11px;color:#666;font-weight:600;margin-bottom:6px">作成した帳票（${docs.length}件）</div>
       ${docs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -2477,7 +2625,7 @@ function renderRcvRows(){
     <tbody>
     ${list.length?list.map(r=>{const p=pmap[r.projectId];const over=r.payStatus!=='支払済'&&r.due&&r.due<today;return `<tr>
       <td ${td}>${fmtD(r.date)}</td>
-      <td ${td}><b>${txt(r.vendor)}</b>${r.memo?`<div style="font-size:10.5px;color:#999">${txt(r.memo)}</div>`:''}</td>
+      <td ${td}><b>${txt(r.vendor)}</b>${r.fileId?` <a href="#" onclick="openProjFile('${r.fileId}');return false" title="元の書類を開く">📄</a>`:''}${r.memo?`<div style="font-size:10.5px;color:#999">${txt(r.memo)}</div>`:''}</td>
       <td ${td}><span style="color:#555">${txt(r.no)}</span></td>
       <td ${td}>${p?`<a href="#" onclick="P.openId='${p.id}';setMainTab('proj');return false" style="color:#1e4a32">${txt(p.name)}</a><div style="font-size:10.5px;color:#999">${esc(p.no)}</div>`:'<span style="color:#bbb">—</span>'}</td>
       <td ${td}><span style="display:block;text-align:right;white-space:nowrap">${fmtY(r.amount||0)}</span></td>
@@ -2494,6 +2642,7 @@ function renderRcvRows(){
   ${list.length?`<div style="text-align:right;font-size:12px;color:#555;margin-top:8px">${list.length}件　合計 <b>${fmtY(total)}</b>　うち未払 <b style="color:#b86e00">${fmtY(unpaid)}</b></div>`:''}`;
 }
 function openRcvEditor(id,presetProj){
+  RCV_FILE=null;
   const r=id?getReceived().find(x=>x.id===id):{vendor:'',no:'',date:todayStr(),amount:'',tax:'',due:'',projectId:presetProj||RV.proj||'',payStatus:'未払',paidDate:'',memo:''};
   const vendors=[...new Set(getReceived().map(x=>x.vendor).filter(Boolean))];
   const f=(k,l,ph,type='text',full)=>`<div class="field${full?' full':''}"><label>${l}</label><input id="re-${k}" type="${type}" value="${esc(String(r[k]??''))}" placeholder="${ph||''}"${k==='vendor'?' list="re-vendors"':''}/></div>`;
@@ -2502,6 +2651,18 @@ function openRcvEditor(id,presetProj){
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:20px 22px;width:600px;max-width:94vw;max-height:90vh;overflow:auto">
       <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:10px">${id?'受領請求書を編集':'受領請求書を登録'}</div>
+      <div style="background:#f5f9f6;border:1px solid #d5e3d9;border-radius:8px;padding:10px 12px;margin-bottom:12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="btn sm primary" style="cursor:pointer">📄 PDF・写真から読み取る<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="rcvReadFile(this)"/></label>
+          <button class="btn sm" onclick="const b=document.getElementById('re-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
+          <span style="font-size:11px;color:#888">金額・支払期限・請求日・請求元を自動で入れます</span>
+        </div>
+        <div id="re-paste" style="display:none;margin-top:8px">
+          <textarea id="re-text" placeholder="請求書の文章を貼り付けてください&#10;例）■請求金額：¥93,500（税込）&#10;　　■支払期限：2025年8月31日" style="width:100%;height:80px;font-size:12px;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea>
+          <button class="btn sm primary" style="margin-top:6px" onclick="rcvReadText()">読み取る</button>
+        </div>
+        <div id="re-status" style="font-size:11.5px;color:#555;margin-top:6px;line-height:1.6"></div>
+      </div>
       <datalist id="re-vendors">${vendors.map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
       <div class="form-grid">
         ${f('vendor','請求元（取引先） <span style="color:#c0392b">*</span>','例：〇〇設備工業')}
@@ -2525,6 +2686,35 @@ function openRcvEditor(id,presetProj){
     </div></div>`;
   setTimeout(()=>{const e=document.getElementById('re-vendor');if(e)e.focus();},30);
 }
+// 受領請求書：読み取った内容を入力欄に入れる
+let RCV_FILE=null;
+function rcvApply(sum,ocr){
+  const set=(k,v,onlyEmpty)=>{const e=document.getElementById('re-'+k);if(!e||v===''||v==null)return false;if(onlyEmpty&&e.value.trim())return false;e.value=v;e.style.background='#fffbe6';return true;};
+  const got=[];
+  if(sum.amount!==''){
+    // 税抜の金額しか分からないときは税込に直す
+    const inc=sum.inc===false?Math.round(sum.amount*1.1):sum.amount;
+    if(set('amount',inc))got.push('金額'+(sum.inc===false?'（税抜→税込に換算）':''));
+  }
+  if(sum.tax!==''&&set('tax',sum.tax))got.push('消費税');
+  if(set('due',sum.due))got.push('支払期限');
+  if(set('date',sum.date))got.push('請求日');
+  if(set('no',sum.no,true))got.push('請求書番号');
+  if(set('vendor',sum.vendor,true))got.push('請求元');
+  const st=document.getElementById('re-status');
+  st.innerHTML=got.length?`<span style="color:#1e4a32">✓ ${got.join('・')} を入れました（黄色の欄）。内容を確認してから保存してください。</span>${ocr?'<br><span style="color:#b86e00">画像から読み取ったため、数字の読み間違いに注意してください。</span>':''}`
+    :'<span style="color:#c0392b">金額や日付を見つけられませんでした。手入力してください。</span>';
+}
+async function rcvReadFile(input){
+  const file=input.files[0];input.value='';if(!file)return;
+  RCV_FILE=file;
+  const st=document.getElementById('re-status');st.textContent='読み取り中…';
+  try{const {text,ocr}=await fileToText(file,m=>{st.textContent=m;});rcvApply(readDocSummary(text),ocr);
+    st.innerHTML+=`<br><span style="color:#888">📎 ${esc(file.name)}：保存すると、選んだ案件の「もらった書類」にも保存されます</span>`;}
+  catch(e){console.error(e);const msg=String(e&&(e.message||e));
+    st.innerHTML=`<span style="color:#c0392b">${/Worker|SecurityError|blob/i.test(msg)?'この画面では画像から文字を読み取れません。ChromeかEdgeで開き直してください。':esc(msg)}</span>`;}
+}
+function rcvReadText(){const t=(document.getElementById('re-text')||{}).value||'';if(!t.trim())return;rcvApply(readDocSummary(t),false);}
 function saveRcvEditor(id,btn){
   const v=k=>((document.getElementById('re-'+k)||{}).value||'').trim();
   if(!v('vendor')){alert('請求元を入力してください');return;}
@@ -2534,6 +2724,15 @@ function saveRcvEditor(id,btn){
   const r=id?list.find(x=>x.id===id):{id:'r'+Date.now(),createdAt:Date.now()};
   Object.assign(r,{vendor:v('vendor'),no:v('no'),date:v('date'),due:v('due'),amount,tax:parseYen(v('tax')),
     projectId:v('projectId'),payStatus:v('payStatus')||'未払',paidDate:v('paidDate'),memo:v('memo')});
+  // 読み取りに使ったPDF・写真を案件に保存して、受領請求書から開けるようにする
+  if(RCV_FILE&&r.projectId){
+    const f=RCV_FILE;
+    saveProjFile(r.projectId,f,{kind:'receivedInvoice',vendor:r.vendor}).then(rec=>{
+      const l=getReceived();const x=l.find(y=>y.id===r.id);if(x){x.fileId=rec.id;saveReceived(l);}
+      if(S.mainTab==='received')renderRcvRows();else renderProjList();
+    }).catch(e=>alert('ファイルを保存できませんでした：'+(e.message||e)));
+  }
+  RCV_FILE=null;
   if(r.payStatus==='支払済'&&!r.paidDate)r.paidDate=todayStr();
   if(r.payStatus==='未払')r.paidDate='';
   if(!id)list.push(r);
@@ -2741,7 +2940,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04c';
+const APP_VERSION='2026.10.04d';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
