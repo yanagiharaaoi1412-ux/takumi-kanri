@@ -995,7 +995,7 @@ function estimateLandscape(totals){
     ${row(noteFirst?'備考':'',txt(noteFirst),true)}
   </div>
 
-  <div style="margin:26px 0 0 60mm;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
+  <div style="margin:26px 0 0;text-align:center;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
   ${hasLines?`<div style="position:absolute;right:20mm;bottom:10mm;font-size:10.5px;color:#555">（内訳は次頁）</div>`:''}
 </div>`;
 
@@ -3661,7 +3661,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04t';
+const APP_VERSION='2026.10.04u';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
