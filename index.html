@@ -987,13 +987,14 @@ function estimateLandscape(totals){
     </div>
   </div>
 
-  <!-- 工事情報 -->
-  <div style="margin:8px 0 0 10mm;font-size:13.5px">
-    ${row('工事名',txt(F.subject))}
-    ${row('工事場所',txt(F.site))}
-    ${row('有効期限',F.dueDate?warekiStr(F.dueDate)+'まで':'')}
-    ${row(noteFirst?'備考':'',txt(noteFirst),true)}
-  </div>
+  <!-- 工事情報（御見積金額と同じ幅・位置にそろえた表） -->
+  ${(()=>{const items=[['工事名',txt(F.subject)],['工事場所',txt(F.site)],['有効期限',F.dueDate?warekiStr(F.dueDate)+'まで':'']];
+    if(noteFirst)items.push(['備考',txt(noteFirst)]);
+    return `<table style="margin:16px 0 0 62mm;width:125mm;border-collapse:collapse;font-size:13px;border-top:1.5px solid ${NV};border-bottom:1.5px solid ${NV}">
+      ${items.map(([l,v],i)=>`<tr>
+        <th style="width:27mm;background:#eef4f0;color:${NV};font-weight:700;text-align:center;letter-spacing:.2em;padding:9px 4px;${i?'border-top:1px solid #cfdcd3;':''}white-space:nowrap">${l}</th>
+        <td style="padding:9px 12px;line-height:1.5;${i?'border-top:1px solid #cfdcd3;':''}">${v||'&nbsp;'}</td></tr>`).join('')}
+    </table>`;})()}
 
   <div style="margin:26px 0 0;text-align:center;font-size:15px;letter-spacing:.08em">上記の通り御見積申し上げます</div>
   ${hasLines?`<div style="position:absolute;right:20mm;bottom:10mm;font-size:10.5px;color:#555">（内訳は次頁）</div>`:''}
@@ -3661,7 +3662,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04u';
+const APP_VERSION='2026.10.04v';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
