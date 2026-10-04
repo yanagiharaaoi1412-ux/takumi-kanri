@@ -74,7 +74,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
   .bar{flex-wrap:wrap;padding:8px}
   .bar .btn{flex:1 1 auto;font-size:12px;padding:8px 6px}
   .bar-note{display:none}
-  #panel-proj,#panel-issued,#panel-received,#panel-master{padding:10px!important}
+  #panel-dash,#panel-proj,#panel-issued,#panel-received,#panel-master{padding:10px!important}
   #pj-detail [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr!important}
   .line-tbl{display:block;overflow-x:auto;white-space:nowrap}
   .prev-wrap{padding:8px;overflow-x:auto}
@@ -111,6 +111,17 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
 }
 .staff-chip{display:inline-block;font-size:11.5px;padding:1px 9px;border-radius:999px;background:#e6f0e9;color:#1e4a32;border:1px solid #c9dccf;white-space:nowrap;margin:1px 0}
 .no-staff{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:#fdecea;color:#c0392b;border:1px solid #f3c2bc;font-weight:700;white-space:nowrap}
+.dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dcard{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;min-width:0}
+.dcard-t{font-size:11px;color:#666;font-weight:600}
+.dcard-v{font-size:22px;font-weight:700;margin:4px 0 2px;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dcard-s{font-size:11px;color:#888}
+.dwarn{display:inline-block;margin-top:4px;font-size:10.5px;color:#c0392b;font-weight:700}
+.dbox{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;min-width:0;overflow:auto}
+.dbox-t{font-size:12px;color:#444;font-weight:700;margin-bottom:6px}
+@media (max-width:1000px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dgrid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.dcard-v{font-size:18px}}
 </style>
 </head>
 <body>
@@ -123,6 +134,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
   </div>
   <div class="sb-menu">
     <div class="sb-lbl">メニュー</div>
+    <button class="doc-btn" id="nav-dash" onclick="setMainTab('dash')">📊 ダッシュボード</button>
     <button class="doc-btn" id="nav-proj" onclick="setMainTab('proj')">📁 案件</button>
     <button class="doc-btn" id="nav-issued" onclick="setMainTab('issued')">📤 発行請求書一覧</button>
     <button class="doc-btn" id="nav-received" onclick="setMainTab('received')">📥 受領請求書一覧</button>
@@ -156,6 +168,7 @@ body{font-family:'Meiryo','Hiragino Sans','Yu Gothic',sans-serif;background:#f5f
     </div>
   </div>
   <div class="main-content">
+    <div id="panel-dash" style="display:none;padding:16px"></div>
     <div id="panel-proj" style="display:none;padding:16px"></div>
     <div id="panel-issued" style="display:none;padding:16px"></div>
     <div id="panel-received" style="display:none;padding:16px"></div>
@@ -292,13 +305,13 @@ function setMainTab(t){
   if(!inEditor)autoSaveNow();
   S.mainTab=t;
   const editor=t==='form'||t==='preview';
-  ['proj','issued','received','master'].forEach(id=>{
+  ['dash','proj','issued','received','master'].forEach(id=>{
     const b=document.getElementById('nav-'+id);
     if(b)b.classList.toggle('active',id===t||(editor&&(S.backTo||'proj')===id));
   });
   document.getElementById('mtab-form').classList.toggle('active',t==='form');
   document.getElementById('mtab-prev').classList.toggle('active',t==='preview');
-  ['proj','issued','received','master','form','preview'].forEach(id=>{
+  ['dash','proj','issued','received','master','form','preview'].forEach(id=>{
     document.getElementById('panel-'+id).style.display=id===t?'block':'none';
   });
   document.getElementById('editor-tabs').style.display=editor?'flex':'none';
@@ -307,6 +320,7 @@ function setMainTab(t){
   document.getElementById('main-bar').style.display=editor?'flex':'none';
   if(t==='preview') renderPreview();
   if(t==='proj') renderProjects();
+  if(t==='dash') renderDash();
   if(t==='issued') renderDocList();
   if(t==='received') renderReceived();
   if(t==='master') renderMaster();
@@ -2457,6 +2471,23 @@ function memberList(){
   if(typeof SH==='undefined'||!SH.members)return [];
   return Object.values(SH.members).filter(m=>m&&(m.lastName||m.firstName)).map(m=>({...m,name:[m.lastName,m.firstName].filter(Boolean).join(' ')}));
 }
+// ===== 表示できる案件（担当が決まった案件は、担当者と管理者だけに表示） =====
+const isCloud=()=>typeof SH!=='undefined'&&SH.backend==='cloud'&&!!SH.user;
+function adminIds(){return (typeof SH!=='undefined'&&SH.roles&&Array.isArray(SH.roles.admins))?SH.roles.admins:[];}
+function isAdmin(){
+  if(!isCloud())return true;                 // このパソコン・共有フォルダ版は制限なし
+  const a=adminIds();
+  return !a.length||a.includes(SH.user.id);   // 管理者がまだ決まっていない間は全員が管理者扱い
+}
+const nameKey=n=>String(n||'').replace(/[\s　]+/g,'');
+function isMine(p){
+  if(!isCloud())return true;
+  const m=SH.members&&SH.members[SH.user.id];if(!m)return false;
+  const full=nameKey((m.lastName||'')+(m.firstName||'')),last=nameKey(m.lastName);
+  return staffOf(p).some(n=>{const k=nameKey(n);return k===full||(last&&k===last);});
+}
+function canSee(p){return !p||isAdmin()||!staffOf(p).length||isMine(p);}
+function visibleProjects(){return getProjects().filter(canSee);}
 const PE={staff:[]};
 function peStaffRender(){
   const box=document.getElementById('pe-staff-chips');if(!box)return;
@@ -2608,7 +2639,7 @@ function renderProjects(){
     <select onchange="P.staff=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
       <option value="">すべての担当</option>
       <option value="__none"${P.staff==='__none'?' selected':''}>⚠ 担当未設定</option>
-      ${staffSuggestions().map(n=>`<option value="${esc(n)}"${P.staff===n?' selected':''}>${esc(n)}</option>`).join('')}
+      ${(isAdmin()?staffSuggestions():[...new Set(visibleProjects().flatMap(staffOf))]).map(n=>`<option value="${esc(n)}"${P.staff===n?' selected':''}>${esc(n)}</option>`).join('')}
     </select>
   </div>
   <div id="pj-list"></div>
@@ -2618,17 +2649,19 @@ function renderProjects(){
 }
 function renderProjList(){
   const q=P.q.trim().toLowerCase();
-  const list=getProjects().filter(p=>(!P.status||p.status===P.status)&&
+  const list=visibleProjects().filter(p=>(!P.status||p.status===P.status)&&
     (!P.staff||(P.staff==='__none'?!staffOf(p).length:staffOf(p).includes(P.staff)))&&
     (!q||[p.name,p.client,p.site,p.no,p.clientAddr,...staffOf(p)].join(' ').toLowerCase().includes(q)));
-  const noStaff=getProjects().filter(p=>!staffOf(p).length&&p.status!=='失注').length;
-  const counts={};getProjects().forEach(p=>counts[p.status]=(counts[p.status]||0)+1);
+  const noStaff=visibleProjects().filter(p=>!staffOf(p).length&&p.status!=='失注').length;
+  const counts={};visibleProjects().forEach(p=>counts[p.status]=(counts[p.status]||0)+1);
+  const limited=!isAdmin();
   const th='style="text-align:left;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0;white-space:nowrap"';
   const td='style="padding:8px;border-bottom:1px solid #eee;font-size:12px;vertical-align:middle"';
   document.getElementById('pj-list').innerHTML=`
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
     ${STATUSES.map(s=>`<span onclick="P.status=P.status==='${s.k}'?'':'${s.k}';renderProjects()" style="cursor:pointer;opacity:${!P.status||P.status===s.k?1:.45}">${statusBadge(s.k)}<span style="font-size:11px;color:#888;margin:0 6px 0 3px">${counts[s.k]||0}</span></span>`).join('')}
   </div>
+  ${limited?`<div style="font-size:11.5px;color:#555;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:6px;padding:6px 10px;margin-bottom:10px">👤 <b>${esc(myName())}</b> さんの担当案件と、担当が未設定の案件だけを表示しています。</div>`:''}
   ${noStaff?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
   <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
   <table style="width:100%;border-collapse:collapse">
@@ -2644,7 +2677,7 @@ function renderProjList(){
       <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:12px;text-align:right;white-space:nowrap">${hasYen(p.contractActual)?fmtY(p.contractActual):hasYen(p.contract)?`<span style="color:#999;font-size:11px">予定 </span><span style="color:#888">${fmtY(p.contract)}</span>`:'<span style="color:#bbb">—</span>'}</td>
       <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}>${(p.docs||[]).length}件</td>
-    </tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:28px;color:#aaa;font-size:12px">${getProjects().length?'該当する案件がありません':'まだ案件がありません。「＋ 新規案件」から起票してください。'}</td></tr>`}
+    </tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:28px;color:#aaa;font-size:12px">${visibleProjects().length?'該当する案件がありません':'まだ案件がありません。「＋ 新規案件」から起票してください。'}</td></tr>`}
     </tbody>
   </table></div>`;
   renderProjDetail();
@@ -2652,7 +2685,7 @@ function renderProjList(){
 function renderProjDetail(){
   const box=document.getElementById('pj-detail');if(!box)return;
   const p=P.openId?getProject(P.openId):null;
-  if(!p){box.innerHTML='';return;}
+  if(!p||!canSee(p)){box.innerHTML='';return;}
   // 一覧の選択行の色を更新
   const row=(l,v)=>`<div><div style="font-size:10.5px;color:#888">${l}</div><div style="font-size:13px;margin-top:1px">${v||'<span style="color:#bbb">—</span>'}</div></div>`;
   const docs=(p.docs||[]).slice().sort((a,b)=>b.savedAt-a.savedAt);
@@ -2841,6 +2874,8 @@ function saveProjEditor(id){
   if(v('start')&&v('end')&&v('end')<v('start')){alert('完工予定日は着工日以降の日付にしてください');return;}
   if(v('orderDate')&&v('end')&&v('end')<v('orderDate')){alert('完工予定日は受注日以降の日付にしてください');return;}
   peStaffFromInput();   // 入力欄に残っている名前も担当に入れる
+  if(!isAdmin()&&PE.staff.length&&!isMine({staff:PE.staff})&&
+     !confirm('担当に自分（'+myName()+'）が入っていません。\n保存すると、この案件はあなたの一覧に表示されなくなります（管理者と担当者だけが見られます）。\n\nこのまま保存しますか？'))return;
   const p=id?getProject(id):{id:'p'+Date.now(),no:newProjectNo(),docs:[],createdAt:Date.now()};
   Object.assign(p,{staff:PE.staff.slice(),name:v('name'),site:v('site'),orderDate:v('orderDate'),start:id?v('start'):(p.start||''),end:v('end'),client:v('client'),clientTitle:v('clientTitle')||'様',
     clientZip:v('clientZip'),clientAddr:v('clientAddr'),clientTel:v('clientTel'),contract:parseYen(v('contract')),status:v('status')||'見積中',memo:document.getElementById('pe-memo').value,
@@ -2855,6 +2890,133 @@ function saveProjEditor(id){
   putProject(p);
   closeProjEditor();P.openId=p.id;renderProjList();
 }
+// ===================== ダッシュボード =====================
+const DB={ym:''};
+const ymOf=d=>String(d||'').slice(0,7);
+function ymAdd(ym,n){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m-1+n,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+const ymLabel=ym=>{const [y,m]=ym.split('-');return `${y}年${+m}月`;};
+const exTax=v=>Math.round((v||0)/1.1);
+const rcvEx=r=>hasYen(r.tax)?(r.amount||0)-r.tax:exTax(r.amount);
+function dashSource(){
+  const projs=visibleProjects();
+  const inv=[];projs.forEach(p=>(p.docs||[]).forEach(d=>{if(d.docType==='invoice'&&d.status==='発行済')inv.push({p,d});}));
+  const rcv=getReceived().filter(r=>canSee(r.projectId&&getProject(r.projectId)));
+  return {projs,inv,rcv};
+}
+function dashMonth(src,ym){
+  const iv=src.inv.filter(x=>ymOf(x.d.date)===ym),rc=src.rcv.filter(r=>ymOf(r.date)===ym);
+  const sales=iv.reduce((a,x)=>a+(x.d.total||0),0),salesEx=iv.reduce((a,x)=>a+exTax(x.d.total),0);
+  const cost=rc.reduce((a,r)=>a+(r.amount||0),0),costEx=rc.reduce((a,r)=>a+rcvEx(r),0);
+  const profit=salesEx-costEx;
+  return {ym,iv,rc,sales,salesEx,cost,costEx,profit,rate:salesEx?Math.round(profit/salesEx*1000)/10:null};
+}
+function dashChart(months){
+  const pw=(document.getElementById('panel-dash')||{}).clientWidth||800;
+  const W=Math.max(320,Math.min(1400,pw-62)),H=W<500?200:240,L=58,R=10,T=14,B=30,cw=(W-L-R)/months.length;
+  const vals=months.flatMap(m=>[m.salesEx,m.costEx,m.profit]);
+  let max=Math.max(1,...vals),min=Math.min(0,...vals);
+  const step=(()=>{const r=(max-min)/4;const p=Math.pow(10,Math.floor(Math.log10(r)));return [1,2,2.5,5,10].map(k=>k*p).find(k=>k>=r);})();
+  max=Math.ceil(max/step)*step;min=Math.floor(min/step)*step;
+  const y=v=>T+(H-T-B)*(max-v)/(max-min);
+  const man=v=>Math.abs(v)>=10000?(v/10000).toLocaleString('ja-JP',{maximumFractionDigits:1})+'万':v.toLocaleString('ja-JP');
+  let g='';
+  for(let v=min;v<=max+1e-6;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${v===0?'#bbb':'#eee'}"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="#999">${man(v)}</text>`;
+  const bw=Math.max(4,Math.min(18,cw/3.2));
+  months.forEach((m,i)=>{
+    const cx=L+cw*i+cw/2;
+    const bar=(v,x,c)=>`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(0.5,Math.abs(y(v)-y(0)))}" fill="${c}" rx="1.5"><title>${ymLabel(m.ym)} ${c==='#1e4a32'?'売上':'仕入'}（税抜）${fmtY(v)}</title></rect>`;
+    g+=bar(m.salesEx,cx-bw-1,'#1e4a32')+bar(m.costEx,cx+1,'#c9b26b');
+    g+=`<text x="${cx}" y="${H-B+15}" text-anchor="middle" font-size="${cw<34?9:10.5}" fill="${i===months.length-1?'#1e4a32':'#888'}" font-weight="${i===months.length-1?700:400}">${+m.ym.slice(5)}月</text>`;
+  });
+  const pts=months.map((m,i)=>`${L+cw*i+cw/2},${y(m.profit)}`).join(' ');
+  g+=`<polyline points="${pts}" fill="none" stroke="#d35400" stroke-width="2"/>`+months.map((m,i)=>`<circle cx="${L+cw*i+cw/2}" cy="${y(m.profit)}" r="3.2" fill="#fff" stroke="#d35400" stroke-width="2"><title>${ymLabel(m.ym)} 粗利 ${fmtY(m.profit)}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${g}</svg>`;
+}
+function renderDash(){
+  const el=document.getElementById('panel-dash');if(!el)return;
+  const today=todayStr();if(!DB.ym)DB.ym=today.slice(0,7);
+  const src=dashSource();
+  const cur=dashMonth(src,DB.ym),prev=dashMonth(src,ymAdd(DB.ym,-1));
+  const months=[...Array(12)].map((_,i)=>dashMonth(src,ymAdd(DB.ym,i-11)));
+  const fy=(()=>{const y=+DB.ym.slice(0,4);const ms=[...Array(+DB.ym.slice(5))].map((_,i)=>dashMonth(src,`${y}-${String(i+1).padStart(2,'0')}`));
+    const se=ms.reduce((a,m)=>a+m.salesEx,0),ce=ms.reduce((a,m)=>a+m.costEx,0);return {se,ce,pf:se-ce,rate:se?Math.round((se-ce)/se*1000)/10:null};})();
+  const diff=(a,b)=>{if(!b&&!a)return '';const d=a-b;return `<span style="font-size:10.5px;color:${d>=0?'#1e7a4f':'#c0392b'}">前月比 ${d>=0?'+':'−'}${fmtY(Math.abs(d)).replace('-','')}</span>`;};
+  const card=(t,main,sub,extra,color)=>`<div class="dcard"><div class="dcard-t">${t}</div><div class="dcard-v" style="color:${color||'#222'}">${main}</div><div class="dcard-s">${sub||''}</div>${extra||''}</div>`;
+  // 未回収・未払
+  const unpaidInv=src.inv.filter(x=>x.p.status!=='入金済'&&x.p.status!=='失注').map(x=>({...x,due:x.d.F&&x.d.F.dueDate||''})).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+  const arTotal=unpaidInv.reduce((a,x)=>a+(x.d.total||0),0),arOver=unpaidInv.filter(x=>x.due&&x.due<today);
+  const ap=src.rcv.filter(r=>r.payStatus!=='支払済').sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+  const apTotal=ap.reduce((a,r)=>a+(r.amount||0),0),apOver=ap.filter(r=>r.due&&r.due<today);
+  const est=src.projs.filter(p=>p.status==='見積中'),estSum=est.reduce((a,p)=>a+(hasYen(p.contract)?p.contract:0),0);
+  const working=src.projs.filter(p=>p.status==='受注'||p.status==='施工中');
+  const workSum=working.reduce((a,p)=>a+(hasYen(p.contractActual)?p.contractActual:hasYen(p.contract)?p.contract:0),0);
+  const ending=src.projs.filter(p=>ymOf(p.end)===DB.ym&&['見積中','受注','施工中'].includes(p.status)&&!(p.end<today&&p.status!=='見積中')).sort((a,b)=>a.end.localeCompare(b.end));
+  const lateEnd=src.projs.filter(p=>p.end&&p.end<today&&['受注','施工中'].includes(p.status));
+  // 担当別（今月）：共同担当は人数で割って計上
+  const by={};const add=(p,k,v)=>{const st=staffOf(p);const ns=st.length?st:['（担当未設定）'];ns.forEach(n=>{by[n]=by[n]||{s:0,c:0};by[n][k]+=v/ns.length;});};
+  cur.iv.forEach(x=>add(x.p,'s',exTax(x.d.total)));
+  cur.rc.forEach(r=>{const p=r.projectId&&getProject(r.projectId);if(p)add(p,'c',rcvEx(r));else{by['（案件なし）']=by['（案件なし）']||{s:0,c:0};by['（案件なし）'].c+=rcvEx(r);}});
+  const staffRows=Object.entries(by).sort((a,b)=>(b[1].s-b[1].c)-(a[1].s-a[1].c));
+  const go=id=>`onclick="P.openId='${id}';setMainTab('proj');setTimeout(()=>{const e=document.getElementById('pj-detail');if(e)e.scrollIntoView({behavior:'smooth'});},50)" style="cursor:pointer"`;
+  const td='style="padding:6px 6px;border-bottom:1px solid #f0f0f0;font-size:12px"';
+  const tdr='style="padding:6px 6px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;white-space:nowrap"';
+  const empty=t=>`<div style="font-size:12px;color:#aaa;padding:10px 2px">${t}</div>`;
+  const isNow=DB.ym===today.slice(0,7);
+  el.innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">ダッシュボード</div>
+    <button class="btn sm" onclick="DB.ym=ymAdd(DB.ym,-1);renderDash()">◀</button>
+    <input type="month" value="${DB.ym}" onchange="if(this.value){DB.ym=this.value;renderDash();}" style="font-size:13px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
+    <button class="btn sm" onclick="DB.ym=ymAdd(DB.ym,1);renderDash()">▶</button>
+    ${isNow?'':`<button class="btn sm" onclick="DB.ym='';renderDash()">今月に戻る</button>`}
+    ${isAdmin()?'':`<span style="font-size:11px;color:#666;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:6px;padding:3px 8px">👤 ${esc(myName())} さんが見られる案件だけで集計</span>`}
+  </div>
+  <div class="dgrid">
+    ${card(`${ymLabel(DB.ym)}の売上`,fmtY(cur.sales),`税抜 ${fmtY(cur.salesEx)}　請求書 ${cur.iv.length}件`,diff(cur.salesEx,prev.salesEx))}
+    ${card(`${ymLabel(DB.ym)}の仕入`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件`,diff(cur.costEx,prev.costEx))}
+    ${card(`${ymLabel(DB.ym)}の粗利（税抜）`,fmtY(cur.profit),cur.rate===null?'粗利率 —':`粗利率 <b>${cur.rate}%</b>`,diff(cur.profit,prev.profit),cur.profit<0?'#c0392b':'#1e4a32')}
+    ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　仕入 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#1e4a32')}
+  </div>
+  <div class="dgrid" style="margin-top:10px">
+    ${card('未回収（入金待ちの請求書）',fmtY(arTotal),`${unpaidInv.length}件`,arOver.length?`<span class="dwarn">⚠ 支払期限切れ ${arOver.length}件 ${fmtY(arOver.reduce((a,x)=>a+(x.d.total||0),0))}</span>`:'')}
+    ${card('未払（受領請求書）',fmtY(apTotal),`${ap.length}件`,apOver.length?`<span class="dwarn">⚠ 支払期限切れ ${apOver.length}件 ${fmtY(apOver.reduce((a,r)=>a+(r.amount||0),0))}</span>`:'')}
+    ${card('見積中の案件',`${est.length}件`,`見積額合計 ${fmtY(estSum)}（税込）`)}
+    ${card('受注・施工中の案件',`${working.length}件`,`契約額合計 ${fmtY(workSum)}（税込）`,lateEnd.length?`<span class="dwarn">⚠ 完工予定日を過ぎた案件 ${lateEnd.length}件</span>`:'')}
+  </div>
+  <div class="dbox" style="margin-top:12px">
+    <div class="dbox-t">売上・仕入・粗利の推移（直近12か月・税抜）
+      <span style="font-weight:400;margin-left:10px;font-size:11px"><span style="display:inline-block;width:10px;height:10px;background:#1e4a32;border-radius:2px"></span> 売上　<span style="display:inline-block;width:10px;height:10px;background:#c9b26b;border-radius:2px"></span> 仕入　<span style="color:#d35400;font-weight:700">━●</span> 粗利</span></div>
+    ${dashChart(months)}
+  </div>
+  <div class="dgrid2" style="margin-top:12px">
+    <div class="dbox"><div class="dbox-t">${ymLabel(DB.ym)}に発行した請求書</div>
+      ${cur.iv.length?`<table style="width:100%;border-collapse:collapse">${cur.iv.sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||'')).map(x=>`<tr ${go(x.p.id)}><td ${td}>${fmtD(x.d.date).slice(5)}</td><td ${td}><b>${txt(x.p.name)}</b><div style="font-size:10.5px;color:#888">${txt(x.p.client)}　${esc(x.d.no)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>`:empty('この月に発行した請求書はありません')}
+    </div>
+    <div class="dbox"><div class="dbox-t">担当別（${ymLabel(DB.ym)}・税抜）<span style="font-weight:400;font-size:10.5px;color:#999;margin-left:6px">共同担当は人数で割って計上</span></div>
+      ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">仕入</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#1e4a32'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・仕入はありません')}
+    </div>
+    <div class="dbox"><div class="dbox-t">入金待ちの請求書</div>
+      ${unpaidInv.length?`<table style="width:100%;border-collapse:collapse">${unpaidInv.slice(0,8).map(x=>`<tr ${go(x.p.id)}><td ${td}>${x.due?`<span style="${x.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(x.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(x.p.name)}<div style="font-size:10.5px;color:#888">${txt(x.p.client)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>${unpaidInv.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${unpaidInv.length-8}件</div>`:''}
+        <div style="font-size:10.5px;color:#999;margin-top:6px">※ 案件のステータスを「入金済」にすると、ここから消えます</div>`:empty('入金待ちの請求書はありません')}
+    </div>
+    <div class="dbox"><div class="dbox-t">支払予定（未払の受領請求書）</div>
+      ${ap.length?`<table style="width:100%;border-collapse:collapse">${ap.slice(0,8).map(r=>{const p=r.projectId&&getProject(r.projectId);return `<tr ${p?go(p.id):''}><td ${td}>${r.due?`<span style="${r.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(r.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(r.vendor)}<div style="font-size:10.5px;color:#888">${p?txt(p.name):''}</div></td><td ${tdr}>${fmtY(r.amount||0)}</td></tr>`;}).join('')}</table>${ap.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${ap.length-8}件</div>`:''}`:empty('未払の受領請求書はありません')}
+    </div>
+    <div class="dbox"><div class="dbox-t">${ymLabel(DB.ym)}に完工予定の工事</div>
+      ${ending.length?`<table style="width:100%;border-collapse:collapse">${ending.map(p=>`<tr ${go(p.id)}><td ${td}>${fmtD(p.end).slice(5)}</td><td ${td}>${txt(p.name)}<div style="font-size:10.5px;color:#888">${txt(p.client)}</div></td><td ${td}>${statusBadge(p.status)}</td><td ${td}>${staffChips(p)}</td></tr>`).join('')}</table>`:empty('この月に完工予定の工事はありません')}
+      ${lateEnd.length?`<div style="margin-top:8px;font-size:11.5px;color:#c0392b;font-weight:700">⚠ 完工予定日を過ぎている工事</div><table style="width:100%;border-collapse:collapse">${lateEnd.map(p=>`<tr ${go(p.id)}><td ${td}><span style="color:#c0392b">${fmtD(p.end)}</span></td><td ${td}>${txt(p.name)}</td><td ${td}>${statusBadge(p.status)}</td></tr>`).join('')}</table>`:''}
+    </div>
+    <div class="dbox"><div class="dbox-t">案件のステータス</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">${STATUSES.map(st=>{const n=src.projs.filter(p=>p.status===st.k).length;const mx=Math.max(1,src.projs.length);
+        return `<div onclick="P.status='${st.k}';setMainTab('proj')" style="cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:56px">${statusBadge(st.k)}</span><div style="flex:1;background:#f3f3f3;border-radius:3px;height:10px"><div style="width:${n/mx*100}%;background:${st.c};height:10px;border-radius:3px;opacity:.75"></div></div><span style="width:34px;text-align:right">${n}件</span></div>`;}).join('')}</div>
+    </div>
+  </div>
+  <div style="font-size:10.5px;color:#999;margin-top:12px;line-height:1.7">
+    ※ 売上：その月に発行した請求書（「発行確定」したもの）の合計。下書きは含みません。<br>
+    ※ 仕入：その月が請求日の受領請求書の合計。　※ 粗利＝売上（税抜）−仕入（税抜）。
+  </div>`;
+}
+window.addEventListener('resize',()=>{clearTimeout(DB.rt);DB.rt=setTimeout(()=>{if(S.mainTab==='dash')renderDash();},250);});
 // ===================== 帳票一覧 =====================
 const DL={q:'',status:''};
 function renderDocList(){
@@ -2875,7 +3037,7 @@ function renderDocRows(){
   const q=DL.q.trim().toLowerCase();
   const label=id=>(DOCS.find(d=>d.id===id)||{}).label||id;
   const rows=[];
-  getProjects().forEach(p=>(p.docs||[]).forEach(d=>rows.push({p,d})));
+  visibleProjects().forEach(p=>(p.docs||[]).forEach(d=>rows.push({p,d})));
   const list=rows.filter(({p,d})=>d.docType==='invoice'&&(!DL.status||d.status===DL.status)&&
       (!q||[d.no,p.name,p.client,p.no].join(' ').toLowerCase().includes(q)))
     .sort((a,b)=>(b.d.date||'').localeCompare(a.d.date||'')||b.d.savedAt-a.d.savedAt);
@@ -2912,7 +3074,7 @@ function getReceived(){return collGet('received',RCV_KEY);}
 function saveReceived(l){collSave('received',RCV_KEY,l);}
 function rcvOfProject(pid){return getReceived().filter(r=>r.projectId===pid);}
 function renderReceived(){
-  const projs=getProjects();
+  const projs=visibleProjects();
   document.getElementById('panel-received').innerHTML=`
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">受領請求書一覧</div>
@@ -2932,7 +3094,7 @@ function renderReceived(){
 function renderRcvRows(){
   const q=RV.q.trim().toLowerCase();
   const pmap={};getProjects().forEach(p=>pmap[p.id]=p);
-  const list=getReceived().filter(r=>(!RV.pay||r.payStatus===RV.pay)&&(!RV.proj||r.projectId===RV.proj)&&
+  const list=getReceived().filter(r=>canSee(r.projectId&&getProject(r.projectId))&&(!RV.pay||r.payStatus===RV.pay)&&(!RV.proj||r.projectId===RV.proj)&&
       (!q||[r.vendor,r.no,(pmap[r.projectId]||{}).name,r.memo].join(' ').toLowerCase().includes(q)))
     .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const th='style="text-align:left;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0;white-space:nowrap"';
@@ -2995,7 +3157,7 @@ function openRcvEditor(id,presetProj){
         ${f('tax','うち消費税（円・任意）','')}
         <div class="field full"><label>案件</label><select id="re-projectId">
           <option value="">（案件に紐づけない）</option>
-          ${getProjects().map(p=>`<option value="${p.id}"${r.projectId===p.id?' selected':''}>${esc(p.no)}　${esc(p.name)}（${esc(p.client)}）</option>`).join('')}
+          ${visibleProjects().map(p=>`<option value="${p.id}"${r.projectId===p.id?' selected':''}>${esc(p.no)}　${esc(p.name)}（${esc(p.client)}）</option>`).join('')}
         </select></div>
         <div class="field"><label>支払状況</label><select id="re-payStatus">${['未払','支払済'].map(v=>`<option${r.payStatus===v?' selected':''}>${v}</option>`).join('')}</select></div>
         ${f('paidDate','支払日','','date')}
@@ -3093,9 +3255,48 @@ function renderMaster(){
   const tb=(k,l)=>`<button class="m-tab${MS.tab===k?' active':''}" onclick="MS.tab='${k}';renderMaster()">${l}</button>`;
   document.getElementById('panel-master').innerHTML=`
   <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:6px">マスタ登録</div>
-  <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin-bottom:14px">${tb('cust','顧客マスタ')}${tb('self','自社情報')}</div>
+  <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin-bottom:14px">${tb('cust','顧客マスタ')}${tb('self','自社情報')}${isCloud()?tb('acct','アカウント・管理者'):''}</div>
   <div id="ms-body"></div><div id="ms-modal"></div>`;
-  if(MS.tab==='cust')renderCustomers();else renderIssuerForm();
+  if(MS.tab==='cust')renderCustomers();else if(MS.tab==='acct'&&isCloud())renderAccounts();else renderIssuerForm();
+}
+// ---- アカウント・管理者 ----
+function renderAccounts(){
+  const ms=memberList();const admins=adminIds();const me=SH.user.id;const can=isAdmin();
+  const td='style="padding:9px 8px;border-bottom:1px solid #eee;font-size:12.5px"';
+  const th='style="text-align:left;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0"';
+  document.getElementById('ms-body').innerHTML=`
+  <div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:10px;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:8px;padding:10px 12px">
+    ・<b>管理者</b>は、すべての案件を見られます。<br>
+    ・管理者でない人は、<b>自分が担当の案件</b>と<b>担当が未設定の案件</b>だけが一覧に出ます。<br>
+    ・管理者の設定を変えられるのは管理者だけです。
+    ${admins.length?'':'<br><span style="color:#c0392b;font-weight:700">⚠ まだ管理者が決まっていないため、今は全員がすべての案件を見られます。管理者にする人にチェックを入れてください。</span>'}
+  </div>
+  <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr><th ${th}>名前</th><th ${th}>メールアドレス</th><th ${th}>担当案件</th><th ${th} style="text-align:center;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">管理者</th></tr></thead>
+    <tbody>${ms.map(m=>{const k=[nameKey(m.lastName+m.firstName),nameKey(m.lastName)];
+      const cnt=getProjects().filter(p=>staffOf(p).some(n=>k.includes(nameKey(n)))).length;
+      return `<tr><td ${td}><b>${esc(m.name)}</b>${m.uid===me?' <span style="font-size:10.5px;color:#888">（自分）</span>':''}</td><td ${td}>${esc(m.email||'')}</td><td ${td}>${cnt}件</td>
+      <td ${td} style="padding:9px 8px;border-bottom:1px solid #eee;text-align:center"><input type="checkbox" style="width:18px;height:18px" ${admins.includes(m.uid)?'checked':''} ${can?'':'disabled'} onchange="setAdmin('${m.uid}',this.checked,this)"/></td></tr>`;}).join('')
+      ||`<tr><td colspan="4" style="text-align:center;padding:24px;color:#aaa;font-size:12px">まだ誰も登録されていません</td></tr>`}</tbody>
+  </table></div>
+  <div style="font-size:11px;color:#888;margin-top:8px">※ アカウントは、ログインして名前を登録すると、ここに表示されます。${can?'':'<br>※ あなたは管理者ではないため、設定は変更できません。'}</div>`;
+}
+async function setAdmin(uid,on,el){
+  if(!isAdmin()){el.checked=!on;return;}
+  let a=adminIds().slice();
+  if(on){if(!a.includes(uid))a.push(uid);}
+  else{
+    a=a.filter(x=>x!==uid);
+    if(!a.length){alert('管理者を0人にはできません。先にほかの人を管理者にしてください。');el.checked=true;return;}
+    if(uid===SH.user.id&&!confirm('自分を管理者から外すと、自分の担当以外の案件が見えなくなり、管理者の設定も変えられなくなります。\nよろしいですか？')){el.checked=true;return;}
+  }
+  // 管理者がまだいない状態で他人だけを管理者にしようとしたら確認
+  if(on&&!adminIds().length&&uid!==SH.user.id&&!a.includes(SH.user.id)&&
+     !confirm('自分は管理者に入っていません。このまま保存すると、自分は担当の案件しか見られなくなります。\nよろしいですか？')){el.checked=false;return;}
+  const rec={admins:a,updatedAt:Date.now()};
+  try{await cloudUpsert('settings','roles',rec);}catch(e){alert('保存できませんでした：'+(e.message||e));el.checked=!on;return;}
+  SH.roles=rec;renderAccounts();shStatus();
 }
 // ---- 顧客マスタ ----
 function renderCustomers(){
@@ -3262,12 +3463,12 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04j';
+const APP_VERSION='2026.10.04l';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
   mtime:{},issuer:null,issuerMtime:0,queue:Promise.resolve(),pending:0,err:'',dirty:false,remoteVer:'',busy:false,timer:null,lastSync:0,
-  backend:'folder',sb:null,user:null,pendingIds:new Set(),members:{}};
+  backend:'folder',sb:null,user:null,pendingIds:new Set(),members:{},roles:null};
 const SH_COLLS=['projects','customers','received','files'];
 const shared=()=>SH.mode==='folder';
 const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
@@ -3445,9 +3646,10 @@ function onSharedChange(){
   SH.dirty=false;
   const t=S.mainTab;
   if(t==='proj')renderProjects();
+  else if(t==='dash')renderDash();
   else if(t==='issued')renderDocList();
   else if(t==='received')renderReceived();
-  else if(t==='master'&&MS.tab==='cust')renderMaster();
+  else if(t==='master'&&(MS.tab==='cust'||MS.tab==='acct'))renderMaster();
 }
 function shVersionCheck(){
   const el=document.getElementById('ver-banner');if(!el)return;
@@ -3615,6 +3817,7 @@ function cloudApplyAll(rows){
   let issuer=null,ver='';
   for(const r of rows){
     if(r.coll==='settings'){if(r.id==='issuer')issuer=r.data;if(r.id==='app')ver=(r.data||{}).version||'';
+      if(r.id==='roles'&&JSON.stringify(SH.roles)!==JSON.stringify(r.data)){SH.roles=r.data;changed=true;}
       if(r.id.startsWith('member:')){const uid=r.id.slice(7);if(JSON.stringify(SH.members[uid])!==JSON.stringify(r.data)){SH.members[uid]=r.data;changed=true;}}
       continue;}
     if(!SH.cache[r.coll])continue;
@@ -3679,6 +3882,7 @@ function cloudOnChange(p){
   if(c==='settings'){
     if(id==='issuer'){SH.issuer=p.eventType==='DELETE'?null:row.data;}
     if(id==='app'&&row.data){SH.remoteVer=row.data.version||'';shVersionCheck();}
+    if(id==='roles')SH.roles=p.eventType==='DELETE'?null:row.data;
     if(id.startsWith('member:')){const uid=id.slice(7);if(p.eventType==='DELETE')delete SH.members[uid];else SH.members[uid]=row.data;}
     SH.lastCheck=Date.now();onSharedChange();shStatus();return;
   }
@@ -3731,7 +3935,7 @@ function cloudStatus(el){
   const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#1e4a32">✓ 保存済み</span>';
   const t=SH.lastCheck?new Date(SH.lastCheck):null;
   const hm=t?`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`:'—';
-  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">👤 <b>${esc(myName()||'（名前未登録）')}</b> <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>☁ ${esc(SH.user&&SH.user.email||'')}<br>
+  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">👤 <b>${esc(myName()||'（名前未登録）')}</b>${adminIds().includes(SH.user&&SH.user.id)?' <span style="font-size:9.5px;background:#1e4a32;color:#fff;border-radius:3px;padding:0 4px">管理者</span>':''} <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>☁ ${esc(SH.user&&SH.user.email||'')}<br>
       ${st}　<span style="color:#888">案件 ${SH.cache.projects.size}件</span><br>
       <span style="color:#999">${SH.live?'● リアルタイム反映中':'最終確認 '+hm}</span></div>
     ${SH.lastMsg?`<div style="font-size:10.5px;color:#1e4a32;background:#eef5f0;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
