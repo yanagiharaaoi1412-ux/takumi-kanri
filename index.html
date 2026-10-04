@@ -1927,7 +1927,7 @@ function importQuoteLines(){
   const newLines=on.map(r=>{
     if(r.kind==='heading')return {desc:r.desc,qty:'',unit:'',unitPrice:'',memo:'',cost:''};
     const c=convCost(r.cost);
-    return {desc:r.desc,qty:r.qty===''?(r.price!==''?1:''):r.qty,unit:r.unit||'',unitPrice:r.price,memo:'',cost:c===''?'':Math.round(c*100)/100};
+    return {desc:r.desc,qty:r.qty===''?(r.price!==''?1:''):r.qty,unit:r.unit||'',unitPrice:r.price,memo:r.memo||'',cost:c===''?'':Math.round(c*100)/100};
   });
   saveFormState();
   const isEmpty=F.lines.every(l=>!l.desc&&(l.unitPrice===''||l.unitPrice==null));
@@ -3167,7 +3167,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04f';
+const APP_VERSION='2026.10.04g';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
