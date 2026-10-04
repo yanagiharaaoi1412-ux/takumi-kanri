@@ -2671,6 +2671,12 @@ function setTaxUI(){
 }
 function clearDocForms(){Object.keys(docForms).forEach(k=>delete docForms[k]);}
 
+// 見積書がすでにある案件で、もう1通（別案・再見積など）作るとき
+function newEstimateAgain(pid){
+  const p=getProject(pid);const le=p&&latestEstimate(p);
+  if(le&&!confirm(`この案件には見積書（${le.no}）がすでにあります。\n今の見積書を直す場合は「見積書を開く」を使ってください。\n\n別の見積書を新しく作りますか？`))return;
+  startDocFromProject(pid,'estimate');
+}
 function startDocFromProject(projId,docType,fromEst){
   autoSaveNow();
   const proj=getProject(projId);if(!proj)return;
@@ -2844,7 +2850,9 @@ function renderProjDetail(){
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eee">
       <div style="font-size:11px;color:#666;font-weight:600;margin-bottom:6px">この案件から帳票を作成</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${DOCS.map(d=>`<button class="btn${d.id==='estimate'?' primary':''}" onclick="startDocFromProject('${p.id}','${d.id}')">${d.label}</button>`).join('')}
+        ${(()=>{const le=latestEstimate(p);return DOCS.map(d=>d.id==='estimate'&&le
+          ?`<button class="btn primary" onclick="openProjectDoc('${p.id}','${le.key}')" title="${esc(le.no)}を開いて編集します">見積書を開く</button><button class="btn sm" style="font-size:11px" onclick="newEstimateAgain('${p.id}')">＋ 別の見積書</button>`
+          :`<button class="btn${d.id==='estimate'?' primary':''}" onclick="startDocFromProject('${p.id}','${d.id}')">${d.label}</button>`).join('');})()}
       </div>
       ${latestEstimate(p)?`<div style="font-size:10.5px;color:#888;margin-top:5px">※ 見積書（${esc(latestEstimate(p).no)}）の明細を引き継ぎます</div>`:''}
     </div>
@@ -3584,7 +3592,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04q';
+const APP_VERSION='2026.10.04r';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
