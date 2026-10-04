@@ -1565,9 +1565,23 @@ const HDR={
   no:/^(No\.?|NO\.?|№|番号|項|項番|行)$/
 };
 const TOTAL_RE=/(小計|合計|総計|総額|消費税|税込|税抜|御見積金額|お見積金額|見積金額|値引後|計$)/;
+const HDR_WORDS=/^(名称|品名|品目|規格|仕様|数量|単位|単価|金額|備考|摘要|内容|項目|番号)/;
+function mergeHeaderCells(cells){
+  const out=[];
+  for(let i=0;i<cells.length;i++){
+    const a=cells[i],t=a.text.replace(/[\s　]/g,'');
+    const b=cells[i+1];
+    if(b&&t.length===1){
+      const t2=t+b.text.replace(/[\s　]/g,'');
+      if(HDR_WORDS.test(t2)){out.push({text:t2,x0:a.x0,x1:b.x1,cx:(a.x0+b.x1)/2});i++;continue;}
+    }
+    out.push(a);
+  }
+  return out;
+}
 function detectHeader(row){
   const cols=[];
-  row.cells.forEach(c=>{
+  mergeHeaderCells(row.cells).forEach(c=>{
     const t=c.text.replace(/[\s　]/g,'');
     let k=null;
     if(HDR.no.test(t))k='no';
@@ -1589,8 +1603,8 @@ function rowToLine(row,cols){
   row.cells.forEach(c=>{
     let best=null,bd=Infinity;
     cols.forEach(col=>{
-      // 品名列は左寄せなので左端も考慮
-      const d=col.k==='desc'?Math.min(Math.abs(c.cx-col.cx),Math.abs(c.x0-col.x0)):Math.abs(c.cx-col.cx);
+      // 左寄せ・右寄せ・中央寄せのどれでも合うよう、左端・右端・中央の近い方で比べる
+      const d=Math.min(Math.abs(c.cx-col.cx),Math.abs(c.x0-col.x0),Math.abs(c.x1-col.x1));
       if(d<bd){bd=d;best=col;}
     });
     L[best?best.k:'desc'].push(c.text);
@@ -1604,7 +1618,11 @@ function finishLine(L){
   ['qty','price','amount'].forEach(k=>{
     if(L[k].length&&num(L[k])===null){
       const keep=[];
-      L[k].forEach(t=>{
+      L[k].forEach(t0=>{
+        // 「69,600 回送費込み」→ 数字は残し、後ろの文字は備考へ
+        const sp=String(t0).match(/^(-?[\d,.]+)\s+(\D.*)$/);
+        if(sp&&toNum(sp[1])!==null&&k!=='qty'){keep.push(sp[1]);memo=(memo?memo+' ':'')+sp[2];return;}
+        const t=t0;
         if(toNum(t)!==null){keep.push(t);return;}
         const m=k==='qty'&&zen2han(t).match(/^(-?[\d.,]+)\s*([^\d.,\s]{1,4})$/);
         if(m){keep.push(m[1]);if(!unit)unit=m[2];}
@@ -2217,6 +2235,157 @@ function printEnvelope(){
   w.document.close();
 }
 
+// ===================== 過去の見積書（自社で作ったもの）から案件を作る =====================
+function readEstimateHeader(text){
+  const lines=zen2han(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const tight=l=>l.replace(/[\s　]/g,'');
+  const own=tight(ISSUER.name||'');
+  const o={no:'',date:'',client:'',title:'御中',subject:'',site:'',valid:'',inc:null};
+  for(const l of lines){
+    const t=tight(l);let m;
+    if(!o.no&&(m=t.match(/見積(?:書)?(?:番号|No\.?|NO\.?|№)[:：]?([A-Za-z0-9\-]+)/)))o.no=m[1];
+    if(!o.date&&/発行日|見積日|作成日|見積年月日|発行年月日/.test(t))o.date=parseJDate(l);
+    if(!o.client&&(m=t.match(/^(.+?)(御中|様|殿)$/))&&!/工事|件名|場所|担当|下記/.test(m[1])&&!(own&&m[1].includes(own))){o.client=m[1];o.title=m[2]==='殿'?'様':m[2];}
+    // 値は「：」の後ろから、大きな空白（別の欄）の手前まで
+    const val=()=>{const i=l.search(/[:：]/);return i<0?'':l.slice(i+1).trim().split(/\s{2,}/)[0].trim();};
+    if(!o.subject&&/(工事件名|工事名称|工事名|件名)[:：]/.test(t)){const v=val();if(v)o.subject=v;}
+    if(!o.site&&/(工事場所|施工場所|現場住所|現場名|納入場所)[:：]/.test(t)){const v=val();if(v)o.site=v;}
+    if(!o.valid&&/有効期限/.test(t))o.valid=parseJDate(l);
+    if(o.inc===null&&/(単価|金額)\(?税抜|税別|外税/.test(t))o.inc=false;
+    if(o.inc===null&&/(単価|金額)\(?税込|内税/.test(t))o.inc=true;
+  }
+  return o;
+}
+const PAST={items:[]};
+function openPastImport(){
+  PAST.items=[];
+  document.getElementById('pj-modal').innerHTML=`
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:20px 22px;width:960px;max-width:96vw;max-height:92vh;overflow:auto">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:15px;font-weight:700;color:#1e4a32">過去の見積書から案件を作る</div>
+        <button class="btn sm" style="margin-left:auto" onclick="document.getElementById('pj-modal').innerHTML=''">閉じる</button>
+      </div>
+      <div style="font-size:11.5px;color:#666;margin:6px 0 12px">このツールを使う前に作った見積書（PDF・写真）を選ぶと、宛先・工事名・工事場所・見積番号・発行日・明細を読み取り、1ファイルにつき1つの案件として登録します（見積書は「発行済」、番号もそのまま）。複数まとめて選べます。</div>
+      <label class="btn primary" style="cursor:pointer">📄 見積書を選ぶ（複数可）<input type="file" multiple accept="application/pdf,.pdf,image/*" style="display:none" onchange="readPastFiles(this)"/></label>
+      <label style="font-size:12px;margin-left:10px"><input type="checkbox" id="past-keep" checked/> 元のファイルも案件の「もらった書類」に保存する</label>
+      <div id="past-status" style="font-size:12px;color:#666;margin-top:8px"></div>
+      <div id="past-body"></div>
+    </div></div>`;
+}
+async function readPastFiles(input){
+  const files=[...input.files];try{input.value='';}catch{}
+  if(!files.length)return;
+  const st=document.getElementById('past-status');
+  for(let i=0;i<files.length;i++){
+    const file=files[i];
+    st.textContent=`読み取り中…（${i+1}/${files.length}）${file.name}`;
+    try{PAST.items.push(await readPastOne(file,m=>{st.textContent=`（${i+1}/${files.length}）${m}`;}));}
+    catch(e){console.error(e);PAST.items.push({file,error:String(e&&(e.message||e)),on:false});}
+    renderPastTable();
+  }
+  st.textContent=`${files.length}件を読み取りました。内容を確認して「案件として登録」を押してください。`;
+}
+async function readPastOne(file,onStatus){
+  const isPdf=/pdf/i.test(file.type)||/\.pdf$/i.test(file.name);
+  let lines=[],text='',ocr=false;
+  if(isPdf){
+    const {pages,chars,pdf}=await pdfToRows(file);
+    if(chars>=15){
+      text=pages.map(rows=>rows.map(r=>r.cells.map(c=>c.text).join('  ')).join('\n')).join('\n');
+      lines=parseQuoteRows(pages).lines;
+    } else {
+      ocr=true;onStatus('スキャンしたPDFのため、画像から読み取っています…');
+      const r=await ocrQuoteFromPdf(pdf);if(r.tableFound)lines=classifyLines(r.lines);
+      text=(await fileToText(file,onStatus)).text;
+    }
+  } else {
+    ocr=true;onStatus('画像から読み取っています…');
+    const r=await ocrTableFromGray(grayFromCanvas(await tableCanvasFromImage(file)));if(r.tableFound)lines=classifyLines(r.lines);
+    text=(await fileToText(file,onStatus)).text;
+  }
+  if(!lines.some(l=>l.kind==='item'))lines=parsePlainLines(text);
+  const h=readEstimateHeader(text);
+  const sum=readDocSummary(text);
+  // 明細（見出し行は品名だけの行として残す）
+  const L=lines.filter(l=>l.kind==='item'||(l.kind==='heading'&&l.desc&&!/^備考/.test(l.desc.replace(/\s/g,''))))
+    .map(l=>l.kind==='heading'?{desc:l.desc,qty:'',unit:'',unitPrice:'',memo:'',cost:''}
+      :{desc:l.desc,qty:l.qty??'',unit:l.unit||'',unitPrice:l.price??'',memo:l.memo||'',cost:''});
+  const sub=L.reduce((a,l)=>a+lineAmt(l),0);
+  let inc=h.inc;
+  if(inc===null&&sum.amount!==''){if(Math.round(sub)===sum.amount)inc=true;else if(Math.round(sub*1.1)===sum.amount)inc=false;}
+  if(inc===null)inc=sum.inc!==null?sum.inc:true;
+  return {file,on:true,ocr,h,lines:L,inc,totalPdf:sum.amount};
+}
+const pastTotal=it=>{const sub=it.lines.reduce((a,l)=>a+lineAmt(l),0);return it.inc?Math.round(sub):Math.round(sub)+Math.round(sub*0.1);};
+function pastDup(it){
+  if(!it.h.no)return null;
+  for(const p of getProjects())for(const d of (p.docs||[]))if(d.docType==='estimate'&&String(d.no)===String(it.h.no))return p;
+  return null;
+}
+function renderPastTable(){
+  const box=document.getElementById('past-body');if(!box)return;
+  const inp=(i,k,v,w,type)=>`<input type="${type||'text'}" value="${esc(String(v??''))}" onchange="PAST.items[${i}].h['${k}']=this.value" style="width:${w};font-size:12px;padding:3px 6px;border:1px solid #ddd;border-radius:4px;font-family:inherit"/>`;
+  box.innerHTML=PAST.items.map((it,i)=>{
+    if(it.error)return `<div style="border:1px solid #f0c8c8;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#c0392b">📄 ${esc(it.file.name)}：読み取れませんでした（${esc(it.error)}）</div>`;
+    const tot=pastTotal(it);const ok=it.totalPdf===''||it.totalPdf===tot;const dup=pastDup(it);
+    return `<div style="border:1px solid ${it.on?'#c9dccf':'#e5e5e5'};border-radius:8px;padding:10px 12px;margin-top:10px;${it.on?'':'opacity:.5'}">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <label><input type="checkbox" ${it.on?'checked':''} onchange="PAST.items[${i}].on=this.checked;renderPastTable()"/> <b style="font-size:12.5px">📄 ${esc(it.file.name)}</b></label>
+        ${it.ocr?'<span style="font-size:10.5px;color:#b86e00">画像から読み取り（要確認）</span>':''}
+        ${dup?`<span style="font-size:10.5px;color:#c0392b">⚠ 同じ見積番号が案件「${esc(dup.name)}」にあります（取り込み済みかも）</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;margin-top:8px;font-size:11px;color:#666">
+        <div>宛先<br>${inp(i,'client',it.h.client,'100%')}</div>
+        <div>敬称<br><select onchange="PAST.items[${i}].h.title=this.value" style="font-size:12px;padding:3px">${['御中','様','ご担当者様'].map(v=>`<option${it.h.title===v?' selected':''}>${v}</option>`).join('')}</select></div>
+        <div>工事名<br>${inp(i,'subject',it.h.subject,'100%')}</div>
+        <div>工事場所<br>${inp(i,'site',it.h.site,'100%')}</div>
+        <div>見積番号<br>${inp(i,'no',it.h.no,'100%')}</div>
+        <div>発行日<br>${inp(i,'date',it.h.date,'100%','date')}</div>
+        <div>有効期限<br>${inp(i,'valid',it.h.valid,'100%','date')}</div>
+        <div>金額の表示<br><select onchange="PAST.items[${i}].inc=this.value==='inc';renderPastTable()" style="font-size:12px;padding:3px"><option value="exc"${!it.inc?' selected':''}>税抜</option><option value="inc"${it.inc?' selected':''}>税込</option></select></div>
+      </div>
+      <details style="margin-top:8px"><summary style="font-size:12px;cursor:pointer">明細 ${it.lines.length}行　合計（税込）<b>${fmtY(tot)}</b>
+        ${it.totalPdf!==''?(ok?'<span style="color:#1e4a32">✓ 見積書の金額と一致</span>':`<span style="color:#c0392b">⚠ 見積書の金額 ${fmtY(it.totalPdf)} と違います</span>`):''}</summary>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px">
+          ${it.lines.map(l=>`<tr style="border-top:1px solid #eee;${isNegLine(l)?'color:#c0392b':''}"><td style="padding:3px 4px">${txt(l.desc)}</td><td style="padding:3px 4px;text-align:right">${l.qty===''?'':fmt(l.qty)}</td><td style="padding:3px 4px">${txt(l.unit)}</td><td style="padding:3px 4px;text-align:right">${l.unitPrice===''?'':fmtY(l.unitPrice)}</td><td style="padding:3px 4px;text-align:right">${l.unitPrice===''?'':fmtY(lineAmt(l))}</td><td style="padding:3px 4px;color:#888">${txt(l.memo)}</td></tr>`).join('')}
+        </table>
+      </details>
+    </div>`;
+  }).join('')+(PAST.items.some(it=>it.on&&!it.error)?`
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button class="btn primary" onclick="savePastItems()">選んだ${PAST.items.filter(it=>it.on&&!it.error).length}件を案件として登録</button>
+    </div>`:'');
+}
+async function savePastItems(){
+  const list=PAST.items.filter(it=>it.on&&!it.error);
+  if(!list.length)return;
+  const noClient=list.filter(it=>!String(it.h.client||'').trim());
+  if(noClient.length&&!confirm(`宛先が空の見積書が${noClient.length}件あります。このまま登録しますか？`))return;
+  const keep=(document.getElementById('past-keep')||{}).checked;
+  const custs=getCustomers();
+  const created=[];
+  for(const it of list){
+    const h=it.h,key='d'+Date.now()+Math.random().toString(36).slice(2,6);
+    const total=pastTotal(it);
+    const F0=defaultF();
+    const Fx={...F0,no:h.no||'',date:h.date||todayStr(),dueDate:h.valid||'',client:h.client||'',clientTitle:h.title||'御中',
+      subject:h.subject||'',site:h.site||'',lines:clone(it.lines),noLocked:true,issued:true,docKey:key};
+    const cust=custs.find(c=>c.name.replace(/\s/g,'')===String(h.client||'').replace(/\s/g,''));
+    const proj={id:'p'+Date.now()+Math.random().toString(36).slice(2,5),no:newProjectNo(),createdAt:Date.now(),
+      name:h.subject||'（工事名なし）',site:h.site||'',client:h.client||'',clientTitle:h.title||'御中',
+      clientZip:cust?cust.zip||'':'',clientAddr:cust?cust.addr||'':'',clientTel:cust?cust.tel||'':'',customerId:cust?cust.id:'',
+      orderDate:'',start:'',end:'',contract:total,status:'見積中',memo:'過去の見積書から取り込み',
+      docs:[{key,docType:'estimate',no:h.no||'',date:Fx.date,total,taxType:it.inc?'inc':'exc',status:'発行済',savedAt:Date.now(),F:Fx}]};
+    putProject(proj);created.push(proj);
+    if(keep){try{await saveProjFile(proj.id,it.file,{kind:'ownEstimate'});}catch(e){console.warn(e);}}
+    await new Promise(r=>setTimeout(r,5));
+  }
+  document.getElementById('pj-modal').innerHTML='';
+  P.openId=created.length===1?created[0].id:null;renderProjects();
+  alert(`${created.length}件の案件を登録しました。\n見積書は「発行済」として登録されています。必要に応じてステータス（受注など）を変えてください。`);
+}
+
 // ===================== 案件管理 =====================
 const PROJ_KEY='takumi_projects';
 const STATUSES=[
@@ -2355,6 +2524,7 @@ function renderProjects(){
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-right:6px">案件一覧</div>
     <button class="btn primary" onclick="openProjEditor()">＋ 新規案件</button>
+    <button class="btn" onclick="openPastImport()" title="このツールを使う前に作った見積書PDFから案件を登録">📥 過去の見積書から登録</button>
     <input id="pj-q" value="${esc(P.q)}" oninput="P.q=this.value;renderProjList()" placeholder="工事名・顧客名・場所で検索"
       style="flex:1;min-width:180px;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"/>
     <select onchange="P.status=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
@@ -2997,7 +3167,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04e';
+const APP_VERSION='2026.10.04f';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
