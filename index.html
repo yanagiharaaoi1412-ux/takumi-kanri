@@ -401,9 +401,10 @@ function autoSaveNow(){
   const proj=getProject(S.projectId);if(!proj)return;
   if(document.getElementById('f-date'))saveFormState();
   AUTO.dirty=false;
-  saveDocToProject(proj,F.issued?'発行済':'下書き');
+  saveDocToProject(proj,'下書き');   // 自動保存は発行確定とは別（発行済の書類は「未確定の変更」として保存）
   const d=new Date();const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
-  const n=document.getElementById('autosave-note');if(n)n.textContent=`✓ 自動保存 ${hm}`;
+  const n=document.getElementById('autosave-note');if(n)n.innerHTML=F.issued?`<span style="color:#b86e00">✓ 変更を自動保存 ${hm}（発行確定はまだ）</span>`:`✓ 下書きを自動保存 ${hm}`;
+  if(F.issued)refreshPendingBanner();
 }
 document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#panel-form'))markDirty();});
 document.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#panel-form'))markDirty();});
@@ -495,11 +496,11 @@ function renderForm(){
   if(proj){
     h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eef5f0;border:1px solid #c9dccf;border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px">
       <span>📁 ${esc(proj.no)}　<b>${txt(proj.name)}</b>（${txt(proj.client)} ${txt(proj.clientTitle||'')}）</span>
-      ${F.issued?'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#1e4a32;color:#fff">発行済</span>':''}
+      ${F.issued?'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#1e4a32;color:#fff">発行済</span>':'<span style="font-size:11px;padding:1px 8px;border-radius:999px;background:#f0f0f0;color:#777">下書き（未発行）</span>'}
       <span style="margin-left:auto;display:flex;gap:6px">
         <button class="btn sm" onclick="backFromEditor()">案件を開く</button>
       </span>
-    </div>`;
+    </div><div id="pending-banner"></div>`;
   } else if(F.issued){
     h+=`<div style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px">この書類は発行済です（番号は固定されています）</div>`;
   }
@@ -656,6 +657,7 @@ function renderForm(){
   }
 
   document.getElementById('panel-form').innerHTML=h;
+  refreshPendingBanner();
   updateSubtotalDisplay();
 }
 
@@ -1019,21 +1021,42 @@ function doPrint(){
   // 連番は印刷では進めない。印刷・PDF保存が済んだら「✓ 発行確定」を押す
 }
 
+// 発行済の書類に、まだ発行確定していない変更があるときの表示
+function curDocRec(){const p=S.projectId&&getProject(S.projectId);return p&&F.docKey?(p.docs||[]).find(d=>d.key===F.docKey):null;}
+function refreshPendingBanner(){
+  const el=document.getElementById('pending-banner');if(!el)return;
+  const d=curDocRec();
+  el.innerHTML=F.issued&&d&&d.pendingF?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff7e8;border:1px solid #f0d29a;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:12px;color:#8a5a00">
+      ⚠ 発行後に変更した内容があります（まだ発行確定していません）。帳票の記録・売上の集計は、発行確定した内容のままです。
+      <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" style="color:#27ae60;border-color:#9fd8b5;font-weight:600" onclick="confirmIssue()">✓ 発行確定で反映</button>
+      <button class="btn sm" onclick="discardPending()">変更を取り消す</button></span></div>`:'';
+}
+function discardPending(){
+  const p=S.projectId&&getProject(S.projectId);const d=p&&(p.docs||[]).find(x=>x.key===F.docKey);if(!d||!d.pendingF)return;
+  if(!confirm('発行後の変更を取り消して、発行確定した内容に戻しますか？'))return;
+  AUTO.dirty=false;clearTimeout(AUTO.timer);
+  delete d.pendingF;delete d.pendingAt;putProject(p);
+  F=JSON.parse(JSON.stringify(d.F));F.docKey=d.key;F.noLocked=true;F.issued=true;
+  renderForm();refreshNoDisplay();autoPreview();
+  const n=document.getElementById('autosave-note');if(n)n.textContent='発行確定した内容に戻しました';
+}
 function confirmIssue(){
   saveFormState();finalizeNo();
   const no=F.no;
   const proj=S.projectId?getProject(S.projectId):null;
   if(F.issued){
     // 発行済の書類を開き直して修正した場合：番号はそのまま、案件の記録だけ更新
-    if(!confirm(`発行済の「${no}」の内容を更新しますか？（番号は変わりません）`))return;
+    if(!confirm(`発行済の「${no}」を、いまの内容で発行確定（更新）しますか？\n番号は変わりません。売上・契約金額などの集計もこの内容に変わります。`))return;
+    AUTO.dirty=false;clearTimeout(AUTO.timer);
     if(proj) saveDocToProject(proj,'発行済');
     alert(`「${no}」を更新しました。`);
-    autoPreview();return;
+    renderForm();autoPreview();return;
   }
   const projMsg=proj?`\n案件「${proj.name}」に記録されます。`:'';
   if(!confirm(`書類番号「${no}」で発行確定しますか？\n確定すると次の連番に進みます。${projMsg}`))return;
   const wasLocked=F.noLocked;
   F.noLocked=true;F.issued=true;
+  AUTO.dirty=false;clearTimeout(AUTO.timer);
   if(proj) saveDocToProject(proj,'発行済');
   // この書類はこのまま表示を続け、次に新しく作る書類から次の番号になる
   const dateEl=document.getElementById('f-date');
@@ -1047,7 +1070,10 @@ function saveDraft(){
   saveFormState();
   if(S.projectId){
     const proj=getProject(S.projectId);
-    if(proj){saveDocToProject(proj,'下書き');alert(`案件「${proj.name}」に${F.issued?'保存':'下書きとして保存'}しました`);return;}
+    if(proj){AUTO.dirty=false;clearTimeout(AUTO.timer);saveDocToProject(proj,'下書き');
+      if(F.issued){refreshPendingBanner();alert('変更を保存しました。\nこの書類は発行済のため、帳票の記録（金額・集計）に反映するには「✓ 発行確定」を押してください。');}
+      else alert(`案件「${proj.name}」に下書きとして保存しました`);
+      return;}
   }
   try{
     localStorage.setItem('hanhyo_draft_F',JSON.stringify(F));
@@ -2615,10 +2641,11 @@ function createInvoiceFromEstimate(projId,key){
   let proj=getProject(projId);if(!proj)return;
   if(!key){
     // 編集中の見積書：まず案件に保存してから
-    saveDocToProject(proj,F.issued?'発行済':'下書き');
+    saveDocToProject(proj,'下書き');
     key=F.docKey;proj=getProject(projId);
   }
-  const est=(proj.docs||[]).find(d=>d.key===key);if(!est)return;
+  let est=(proj.docs||[]).find(d=>d.key===key);if(!est)return;
+  if(est.pendingF)est={...est,F:est.pendingF};   // 未確定の変更があれば、その内容を引き継ぐ
   startDocFromProject(projId,'invoice',est);
   saveDocToProject(getProject(projId),'下書き'); // 作成した時点で案件に記録（契約金額も更新）
   renderForm();refreshNoDisplay();
@@ -2630,7 +2657,7 @@ function openProjectDoc(projId,key,from){
   const doc=(proj.docs||[]).find(d=>d.key===key);if(!doc)return;
   S.projectId=projId;clearDocForms();S.backTo=from||'proj';
   S.docType=doc.docType;S.taxType=doc.taxType||S.taxType;
-  F=JSON.parse(JSON.stringify(doc.F));
+  F=JSON.parse(JSON.stringify(doc.status==='発行済'&&doc.pendingF?doc.pendingF:doc.F));
   F.docKey=doc.key;F.noLocked=true;F.issued=doc.status==='発行済';
   setTaxUI();renderDocBtns();updateBadge();renderForm();refreshNoDisplay();
   setMainTab('form');
@@ -2646,6 +2673,15 @@ function saveDocToProject(proj,status){
   const totals=calcTotals();
   const docs=proj.docs||[];
   const i=docs.findIndex(d=>d.key===F.docKey);
+  // 発行済の書類は、自動保存・保存ボタンでは確定した内容を書き換えない。
+  // 変更は「未確定の変更」として別に保存し、「✓ 発行確定」を押したときだけ反映する
+  if(i>=0&&docs[i].status==='発行済'&&status!=='発行済'){
+    const cur=JSON.stringify(F),base=JSON.stringify(docs[i].F);
+    if(cur===base){delete docs[i].pendingF;delete docs[i].pendingAt;}
+    else{docs[i].pendingF=JSON.parse(cur);docs[i].pendingAt=Date.now();}
+    docs[i].savedAt=Date.now();
+    proj.docs=docs;putProject(proj);return;
+  }
   const rec={key:F.docKey,docType:S.docType,no:F.no,date:F.date,total:totals.total,taxType:S.taxType,
     status:(i>=0&&docs[i].status==='発行済')?'発行済':status,savedAt:Date.now(),F:JSON.parse(JSON.stringify(F))};
   if(i>=0)docs[i]=rec;else docs.push(rec);
@@ -2789,7 +2825,7 @@ function renderProjDetail(){
           <td style="padding:6px 4px;color:#555">${esc(d.no)}</td>
           <td style="padding:6px 4px">${fmtD(d.date)}</td>
           <td style="padding:6px 4px;text-align:right">${fmtY(d.total)}</td>
-          <td style="padding:6px 4px;text-align:center"><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span></td>
+          <td style="padding:6px 4px;text-align:center"><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
           <td style="padding:6px 4px;text-align:right;white-space:nowrap">
             ${d.docType==='estimate'?`<button class="btn sm" style="color:#1e4a32;border-color:#1e4a32" onclick="createInvoiceFromEstimate('${p.id}','${d.key}')">→ 請求書を作成</button>`:''}
             <button class="btn sm" onclick="openProjectDoc('${p.id}','${d.key}')">開く</button>
@@ -3093,7 +3129,7 @@ function renderDocRows(){
       <td ${td}>${txt(p.name)}<div style="font-size:10.5px;color:#999">${esc(p.no)}</div></td>
       <td ${td}>${txt(p.client)} ${txt(p.clientTitle||'')}</td>
       <td ${td}><span style="display:block;text-align:right;white-space:nowrap">${fmtY(d.total)}</span></td>
-      <td ${td}><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span></td>
+      <td ${td}><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;${d.status==='発行済'?'background:#e6f0e9;color:#1e4a32':'background:#f3f3f3;color:#888'}">${d.status}</span>${d.status==='発行済'&&d.pendingF?'<div style="font-size:10px;color:#b86e00;margin-top:2px;white-space:nowrap">⚠ 未確定の変更あり</div>':''}</td>
       <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}><span style="display:flex;gap:6px;justify-content:flex-end">
         <button class="btn sm" onclick="openProjectDoc('${p.id}','${d.key}','issued')">開く</button>
@@ -3500,7 +3536,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04m';
+const APP_VERSION='2026.10.04n';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
