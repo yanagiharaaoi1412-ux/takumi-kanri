@@ -2657,7 +2657,7 @@ function memberList(){
 const isCloud=()=>typeof SH!=='undefined'&&SH.backend==='cloud'&&!!SH.user;
 function adminIds(){return (typeof SH!=='undefined'&&SH.roles&&Array.isArray(SH.roles.admins))?SH.roles.admins:[];}
 function isAdmin(){
-  if(!isCloud())return true;                 // このパソコン・共有フォルダ版は制限なし
+  if(!isCloud()||!STAFF_ON())return true;                 // このパソコン・共有フォルダ版は制限なし
   const a=adminIds();
   return !a.length||a.includes(SH.user.id);   // 管理者がまだ決まっていない間は全員が管理者扱い
 }
@@ -2858,11 +2858,11 @@ function renderProjects(){
       <option value="">すべてのステータス</option>
       ${STATUSES.map(s=>`<option${P.status===s.k?' selected':''}>${s.k}</option>`).join('')}
     </select>
-    <select onchange="P.staff=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
+    ${STAFF_ON()?`<select onchange="P.staff=this.value;renderProjList()" style="font-size:12px;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit">
       <option value="">すべての担当</option>
       <option value="__none"${P.staff==='__none'?' selected':''}>⚠ 担当未設定</option>
       ${(isAdmin()?staffSuggestions():[...new Set(visibleProjects().flatMap(staffOf))]).map(n=>`<option value="${esc(n)}"${P.staff===n?' selected':''}>${esc(n)}</option>`).join('')}
-    </select>
+    </select>`:''}
   </div>
   <div id="pj-list"></div>
   <div id="pj-detail"></div>
@@ -2884,15 +2884,15 @@ function renderProjList(){
     ${STATUSES.map(s=>`<span onclick="P.status=P.status==='${s.k}'?'':'${s.k}';renderProjects()" style="cursor:pointer;opacity:${!P.status||P.status===s.k?1:.45}">${statusBadge(s.k)}<span style="font-size:11px;color:#888;margin:0 6px 0 3px">${counts[s.k]||0}</span></span>`).join('')}
   </div>
   ${limited?`<div style="font-size:11.5px;color:#555;background:#f4f7f5;border:1px solid #dfe8e2;border-radius:6px;padding:6px 10px;margin-bottom:10px">👤 <b>${esc(myName())}</b> さんの担当案件と、担当が未設定の案件だけを表示しています。</div>`:''}
-  ${noStaff?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
+  ${noStaff&&STAFF_ON()?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
   <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
   <table style="width:100%;border-collapse:collapse">
-    <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th><th ${th}>担当</th><th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
+    <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th>${STAFF_ON()?`<th ${th}>担当</th>`:''}<th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
     <tbody>
     ${list.length?list.map(p=>`<tr onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
       <td ${td}><span style="color:#888">${esc(p.no)}</span></td>
       <td ${td}><b>${txt(p.name)}</b></td>
-      <td ${td}>${staffChips(p)}</td>
+      ${STAFF_ON()?`<td ${td}>${staffChips(p)}</td>`:''}
       <td ${td}>${txt(p.client)} ${txt(p.clientTitle||'')}</td>
       <td ${td}>${txt(p.site)}</td>
       <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:11.5px;white-space:nowrap">${p.start||p.end?`${fmtD(p.start)} 〜 ${fmtD(p.end)}`:'<span style="color:#bbb">未定</span>'}</td>
@@ -2927,10 +2927,10 @@ function renderProjDetail(){
         <button class="btn sm" onclick="P.openId=null;renderProjList()">閉じる</button>
       </span>
     </div>
-    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    ${STAFF_ON()?`<div style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span style="font-size:10.5px;color:#888">担当</span> ${staffChips(p)}
       ${staffOf(p).length?'':`<button class="btn sm" style="color:#c0392b;border-color:#e8a59c" onclick="openProjEditor('${p.id}',true)">担当を入力する</button>`}
-    </div>
+    </div>`:''}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;margin-top:12px">
       ${row('顧客',txt(p.client)+' '+txt(p.clientTitle||''))}
       ${row('電話',txt(p.clientTel))}
@@ -3046,7 +3046,7 @@ function openProjEditor(id,focusStaff){
         ${id?f('start','着工日','','date'):''}
         ${f('end','完工予定日','','date')}
         ${id?'':`<div class="field full" style="font-size:11px;color:#888;margin-top:-4px">着工日は、決まったら案件の「✏ 編集」から入力できます。</div>`}
-        <div class="field full"><label>担当 <span style="font-size:10px;color:#aaa">　複数人入力できます（名前を入れて Enter か「追加」）</span></label>
+        <div class="field full" style="${STAFF_ON()?'':'display:none'}"><label>担当 <span style="font-size:10px;color:#aaa">　複数人入力できます（名前を入れて Enter か「追加」）</span></label>
           <div id="pe-staff-chips" style="min-height:22px;margin-bottom:5px"></div>
           <div style="display:flex;gap:6px"><input id="pe-staff-in" placeholder="例：山田 太郎" style="flex:1" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();peStaffFromInput();}"/>
             <button type="button" class="btn" onclick="peStaffFromInput()">追加</button></div>
@@ -3216,9 +3216,9 @@ function renderDash(){
     <div class="dbox"><div class="dbox-t">${ymLabel(DB.ym)}に発行した請求書</div>
       ${cur.iv.length?`<table style="width:100%;border-collapse:collapse">${cur.iv.sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||'')).map(x=>`<tr ${go(x.p.id)}><td ${td}>${fmtD(x.d.date).slice(5)}</td><td ${td}><b>${txt(x.p.name)}</b><div style="font-size:10.5px;color:#888">${txt(x.p.client)}　${esc(x.d.no)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>`:empty('この月に発行した請求書はありません')}
     </div>
-    <div class="dbox"><div class="dbox-t">担当別（${ymLabel(DB.ym)}・税抜）<span style="font-weight:400;font-size:10.5px;color:#999;margin-left:6px">共同担当は人数で割って計上</span></div>
+    ${STAFF_ON()?`    <div class="dbox"><div class="dbox-t">担当別（${ymLabel(DB.ym)}・税抜）<span style="font-weight:400;font-size:10.5px;color:#999;margin-left:6px">共同担当は人数で割って計上</span></div>
       ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">仕入</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#1e4a32'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・仕入はありません')}
-    </div>
+    </div>`:''}
     <div class="dbox"><div class="dbox-t">入金待ちの請求書</div>
       ${unpaidInv.length?`<table style="width:100%;border-collapse:collapse">${unpaidInv.slice(0,8).map(x=>`<tr ${go(x.p.id)}><td ${td}>${x.due?`<span style="${x.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(x.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(x.p.name)}<div style="font-size:10.5px;color:#888">${txt(x.p.client)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>${unpaidInv.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${unpaidInv.length-8}件</div>`:''}
         <div style="font-size:10.5px;color:#999;margin-top:6px">※ 案件のステータスを「入金済」にすると、ここから消えます</div>`:empty('入金待ちの請求書はありません')}
@@ -3227,7 +3227,7 @@ function renderDash(){
       ${ap.length?`<table style="width:100%;border-collapse:collapse">${ap.slice(0,8).map(r=>{const p=r.projectId&&getProject(r.projectId);return `<tr ${p?go(p.id):''}><td ${td}>${r.due?`<span style="${r.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(r.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(r.vendor)}<div style="font-size:10.5px;color:#888">${p?txt(p.name):''}</div></td><td ${tdr}>${fmtY(r.amount||0)}</td></tr>`;}).join('')}</table>${ap.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${ap.length-8}件</div>`:''}`:empty('未払の受領請求書はありません')}
     </div>
     <div class="dbox"><div class="dbox-t">${ymLabel(DB.ym)}に完工予定の工事</div>
-      ${ending.length?`<table style="width:100%;border-collapse:collapse">${ending.map(p=>`<tr ${go(p.id)}><td ${td}>${fmtD(p.end).slice(5)}</td><td ${td}>${txt(p.name)}<div style="font-size:10.5px;color:#888">${txt(p.client)}</div></td><td ${td}>${statusBadge(p.status)}</td><td ${td}>${staffChips(p)}</td></tr>`).join('')}</table>`:empty('この月に完工予定の工事はありません')}
+      ${ending.length?`<table style="width:100%;border-collapse:collapse">${ending.map(p=>`<tr ${go(p.id)}><td ${td}>${fmtD(p.end).slice(5)}</td><td ${td}>${txt(p.name)}<div style="font-size:10.5px;color:#888">${txt(p.client)}</div></td><td ${td}>${statusBadge(p.status)}</td>${STAFF_ON()?`<td ${td}>${staffChips(p)}</td>`:''}</tr>`).join('')}</table>`:empty('この月に完工予定の工事はありません')}
       ${lateEnd.length?`<div style="margin-top:8px;font-size:11.5px;color:#c0392b;font-weight:700">⚠ 完工予定日を過ぎている工事</div><table style="width:100%;border-collapse:collapse">${lateEnd.map(p=>`<tr ${go(p.id)}><td ${td}><span style="color:#c0392b">${fmtD(p.end)}</span></td><td ${td}>${txt(p.name)}</td><td ${td}>${statusBadge(p.status)}</td></tr>`).join('')}</table>`:''}
     </div>
     <div class="dbox"><div class="dbox-t">案件のステータス</div>
@@ -3480,9 +3480,9 @@ function renderMaster(){
   const tb=(k,l)=>`<button class="m-tab${MS.tab===k?' active':''}" onclick="MS.tab='${k}';renderMaster()">${l}</button>`;
   document.getElementById('panel-master').innerHTML=`
   <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:6px">マスタ登録</div>
-  <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin-bottom:14px">${tb('cust','顧客マスタ')}${tb('self','自社情報')}${isCloud()?tb('acct','アカウント・管理者'):''}</div>
+  <div style="display:flex;gap:4px;border-bottom:1px solid #e0e0e0;margin-bottom:14px">${tb('cust','顧客マスタ')}${tb('self','自社情報')}${isCloud()&&STAFF_ON()?tb('acct','アカウント・管理者'):''}</div>
   <div id="ms-body"></div><div id="ms-modal"></div>`;
-  if(MS.tab==='cust')renderCustomers();else if(MS.tab==='acct'&&isCloud())renderAccounts();else renderIssuerForm();
+  if(MS.tab==='cust')renderCustomers();else if(MS.tab==='acct'&&isCloud()&&STAFF_ON())renderAccounts();else renderIssuerForm();
 }
 // ---- アカウント・管理者 ----
 function renderAccounts(){
@@ -3688,9 +3688,12 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.05a';
+const APP_VERSION='2026.10.05b';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
+// システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
+const APP_CFG={staff:true,brand:''};
+const STAFF_ON=()=>APP_CFG.staff!==false;
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
   mtime:{},issuer:null,issuerMtime:0,queue:Promise.resolve(),pending:0,err:'',dirty:false,remoteVer:'',busy:false,timer:null,lastSync:0,
   backend:'folder',sb:null,user:null,pendingIds:new Set(),members:{},roles:null};
@@ -4139,7 +4142,7 @@ async function cloudStart(){
   try{cloudApplyAll(await cloudSelectAll());}
   catch(e){showCloudOverlay('error','データを読み込めませんでした。\n'+(e.message||e));return;}
   // はじめてログインしたアカウントは、苗字と名前を登録してから使う
-  if(!myMember()){showCloudOverlay('name');return;}
+  if(STAFF_ON()&&!myMember()){showCloudOverlay('name');return;}
   cloudStart2();
 }
 function myMember(){const m=SH.user&&SH.members[SH.user.id];return m&&m.lastName&&m.firstName?m:null;}
@@ -4158,6 +4161,7 @@ async function cloudSaveName(){
 }
 function cloudStart2(){
   SH.started=true;
+  if(!STAFF_ON())maybeShowInstallGuide();
   SH.mode='folder';   // 共有モード（保存先はクラウド）
   // 相手の変更をすぐ受け取る
   try{
@@ -4234,7 +4238,7 @@ function cloudStatus(el){
   const st=SH.err?`<span style="color:#c0392b">⚠ ${esc(SH.err).slice(0,60)}</span>`:SH.checking?'<span style="color:#b86e00">⟳ 確認中…</span>':SH.pending?'<span style="color:#b86e00">保存中…</span>':'<span style="color:#1e4a32">✓ 保存済み</span>';
   const t=SH.lastCheck?new Date(SH.lastCheck):null;
   const hm=t?`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`:'—';
-  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">👤 <b>${esc(myName()||'（名前未登録）')}</b>${adminIds().includes(SH.user&&SH.user.id)?' <span style="font-size:9.5px;background:#1e4a32;color:#fff;border-radius:3px;padding:0 4px">管理者</span>':''} <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>☁ ${esc(SH.user&&SH.user.email||'')}<br>
+  el.innerHTML=`<div style="font-size:10.5px;line-height:1.6;margin-bottom:6px;color:#555">${STAFF_ON()?`👤 <b>${esc(myName()||'（名前未登録）')}</b>${adminIds().includes(SH.user&&SH.user.id)?' <span style="font-size:9.5px;background:#1e4a32;color:#fff;border-radius:3px;padding:0 4px">管理者</span>':''} <a href="#" onclick="showCloudOverlay('name');return false" style="font-size:10px;color:#888">変更</a><br>`:''}☁ ${esc(SH.user&&SH.user.email||'')}<br>
       ${st}　<span style="color:#888">案件 ${SH.cache.projects.size}件</span><br>
       <span style="color:#999">${SH.live?'● リアルタイム反映中':'最終確認 '+hm}</span></div>
     ${SH.lastMsg?`<div style="font-size:10.5px;color:#1e4a32;background:#eef5f0;border-radius:4px;padding:3px 6px;margin-bottom:6px">${esc(SH.lastMsg)}</div>`:''}
@@ -4246,7 +4250,7 @@ function showCloudOverlay(kind,text){
   if(!el){el=document.createElement('div');el.id='sh-overlay';document.body.appendChild(el);}
   const box=inner=>`<div style="position:fixed;inset:0;background:#f5f5f5;z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px">
     <div style="background:#fff;border:1px solid #d5e3d9;border-radius:12px;padding:26px 28px;width:380px;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.06)">
-      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${esc(ISSUER.name||'')}</div>
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${esc(ISSUER.name||APP_CFG.brand||'')}</div>
       <div style="font-size:11px;color:#999;margin-bottom:16px">案件管理・帳票作成システム</div>${inner}</div></div>`;
   if(kind==='name'){
     const m=(SH.user&&SH.members[SH.user.id])||{};const again=!!SH.started;
