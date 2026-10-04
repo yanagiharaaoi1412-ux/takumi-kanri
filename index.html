@@ -1403,8 +1403,8 @@ async function renderPageGray(page){
 function groupIdx(idx,gap){const out=[];idx.forEach(v=>{const l=out[out.length-1];if(l&&v-l[l.length-1]<=gap)l.push(v);else out.push([v]);});return out.map(a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length));}
 // 罫線から表のマス目を探す
 function findGrid(img){
-  const {g,W,H,f}=img;const K=Math.max(3,Math.round(6*f));
-  const d=new Uint8Array(W*H);for(let i=0;i<d.length;i++)d[i]=g[i]<170?1:0;
+  const {g,W,H,f}=img;const K=Math.max(3,Math.round(6*f));const thr=img.thr||170;
+  const d=new Uint8Array(W*H);for(let i=0;i<d.length;i++)d[i]=g[i]<thr?1:0;
   // 縦方向に太らせた画像で横線、横方向に太らせた画像で縦線を探す（少しの傾きに対応）
   const rowSum=new Float64Array(H),dx=new Uint8Array(W*H);
   for(let x=0;x<W;x++){
@@ -1436,7 +1436,13 @@ function findGrid(img){
   if(tb.length<2)return null;
   const avg=(arr,fn)=>arr.reduce((a,b)=>a+fn(b),0)/arr.length;
   const colx=vc.filter(x=>avg(tb,([y0,y1])=>crosses(x,y0,y1)>0.97?1:0)>0.9);
-  const dotted=vc.filter(x=>!colx.includes(x)&&avg(tb,([y0,y1])=>crosses(x,y0,y1))>0.3);
+  // 点線（桁の区切りなど）：各マスの上端近くから下端近くまで続く線だけ。文字（マスの中ほどにある）は対象外
+  const spans=(x,y0,y1)=>{
+    const q=Math.max(3,Math.round((y1-y0)/4));
+    const hit=(a,b)=>{for(let y=a;y<b;y++)for(let xx=Math.max(0,x-1);xx<=Math.min(W-1,x+1);xx++)if(d[y*W+xx])return true;return false;};
+    return hit(y0+3,y0+q)&&hit(y1-q,y1-3);
+  };
+  const dotted=vc.filter(x=>!colx.includes(x)&&avg(tb,([y0,y1])=>crosses(x,y0,y1))>0.3&&avg(tb.slice(1),([y0,y1])=>spans(x,y0,y1)?1:0)>0.7);
   if(colx.length<3)return null;
   return {tb,colx,dotted,K};
 }
@@ -1475,11 +1481,32 @@ function headerKey(t){
 async function ocrQuoteFromPdf(pdf,onProgress){
   const lines=[];let tableFound=false;
   for(let pn=1;pn<=pdf.numPages;pn++){
-    const page=await pdf.getPage(pn);
-    const img=await renderPageGray(page);
+    const img=await renderPageGray(await pdf.getPage(pn));
+    const r=await ocrTableFromGray(img,(n,t)=>onProgress&&onProgress(n,t,pn,pdf.numPages));
+    if(r.tableFound){tableFound=true;lines.push(...r.lines);}
+  }
+  return {lines,tableFound};
+}
+// 画像（スクショ・写真）の表を読む
+function grayFromCanvas(cv){
+  const W=cv.width,H=cv.height,px=cv.getContext('2d').getImageData(0,0,W,H).data;
+  const g=new Uint8Array(W*H);for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(px[j]*299+px[j+1]*587+px[j+2]*114)/1000;
+  // スクショは細い線が薄くなりやすいので、薄い線も拾う
+  return {g,W,H,f:Math.max(.35,Math.min(1,W/2480)),thr:window.__thr||205};
+}
+async function tableCanvasFromImage(file){
+  const bmp=await createImageBitmap(file);
+  // 小さなスクショは拡大して読みやすくする（A4を300dpi相当の幅に）
+  let s=Math.max(1,Math.min(3,2480/bmp.width));
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);
+  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.imageSmoothingQuality='high';ctx.drawImage(bmp,0,0,cv.width,cv.height);return cv;
+}
+async function ocrTableFromGray(img,onProgress){
+  const lines=[];
+  {
     const grid=findGrid(img);
-    if(!grid)continue;
-    tableFound=true;
+    if(!grid)return {lines,tableFound:false};
     const {tb,colx}=grid;
     // 見出し行
     const keys=[];
@@ -1497,7 +1524,7 @@ async function ocrQuoteFromPdf(pdf,onProgress){
         const k=keys[i];
         const kind=['qty','price','amount'].includes(k)?'num':'jpn';
         row.push(c?await ocrCell(c,kind):'');
-        onProgress&&onProgress(++done,total,pn,pdf.numPages);
+        onProgress&&onProgress(++done,total);
       }
       cells.push(row);
     }
@@ -1515,7 +1542,7 @@ async function ocrQuoteFromPdf(pdf,onProgress){
       lines.push(finishLine(L));
     });
   }
-  return {lines,tableFound};
+  return {lines,tableFound:true};
 }
 function classifyLines(raw){
   return raw.map(l=>{
@@ -1654,6 +1681,7 @@ function openPdfImport(){
       <div style="font-size:11.5px;color:#666;margin:6px 0 12px">仕入れ先の見積書（PDF・写真）を選ぶか、メールなどの文章を貼り付けると、明細を読み取ります。明細がない書類は合計金額を1行で読み取ります。品目ごとに掛け率（または販売単価）を決めて、見積書に取り込めます。</div>
       <label class="btn primary" style="cursor:pointer">📄 PDF・写真を選ぶ<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="IMP.storedId=null;readQuotePdf(this)"/></label>
       <button class="btn" style="margin-left:6px" onclick="const b=document.getElementById('imp-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
+      <div style="font-size:11px;color:#1e4a32;margin-top:6px">💡 スクショは、撮ったあとこの画面で <b>Ctrl＋V</b>（貼り付け）を押すだけで読み取れます</div>
       ${S.projectId?`<label style="font-size:12px;margin-left:10px"><input type="checkbox" id="imp-keep" checked/> 選んだファイルをこの案件の「もらった書類」に保存する</label>`:''}
       <div id="imp-paste" style="display:none;margin-top:10px">
         <textarea id="imp-text" placeholder="メールやLINEの見積もりの文章を、ここに貼り付けてください&#10;例）玄関ドア交換　1式　380,000円&#10;　　取付工事　45,000円" style="width:100%;height:110px;font-size:12px;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea>
@@ -1665,6 +1693,29 @@ function openPdfImport(){
   if(IMP.rows.length)renderImpTable();
 }
 function closePdfImport(){document.getElementById('imp-modal').innerHTML='';}
+// クリップボードの画像（スクショ）を取り出す
+function clipImage(e){
+  const items=(e.clipboardData||{}).items||[];
+  for(const it of items)if(it.kind==='file'&&/^image\//.test(it.type)){
+    const b=it.getAsFile();if(!b)continue;
+    const ext=(it.type.split('/')[1]||'png').replace('jpeg','jpg');
+    const d=new Date();const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+    return new File([b],`スクショ_${stamp}.${ext}`,{type:it.type});
+  }
+  return null;
+}
+document.addEventListener('paste',async e=>{
+  const file=clipImage(e);if(!file)return;
+  // 仕入見積の取り込み画面
+  if(document.getElementById('imp-status')&&document.getElementById('imp-body')){
+    e.preventDefault();IMP.storedId=null;
+    const keep=document.getElementById('imp-keep');
+    if(S.projectId&&keep&&keep.checked){try{const rec=await saveProjFile(S.projectId,file);IMP.storedId=rec.id;}catch(err){console.warn(err);}}
+    readQuoteFile(file);return;
+  }
+  // 受領請求書の登録画面
+  if(document.getElementById('re-status')){e.preventDefault();rcvReadFile({files:[file],value:''});}
+});
 async function readQuotePdf(input){
   const file=input.files[0];input.value='';if(!file)return;
   // 案件に保存（チェックがある場合）
@@ -1692,6 +1743,12 @@ async function readQuoteFile(file){
       } else {
         ({lines,headerFound}=parseQuoteRows(pages));
       }
+    } else {
+      // スクショ・写真：罫線の表があれば表として読む
+      ocr=true;IMP.rows=[];renderImpTable();
+      st.innerHTML='画像から文字を読み取っています…<br><span style="font-size:11px;color:#888">初回は読み取り用データのダウンロードに少し時間がかかります</span>';
+      const r=await ocrTableFromGray(grayFromCanvas(await tableCanvasFromImage(file)),(n,t)=>{st.textContent=`画像から表を読み取っています… ${Math.round(n/t*100)}%`;});
+      if(r.tableFound)lines=classifyLines(r.lines);
     }
     // 表が見つからない・明細がない → 文章として読み取る（合計だけの書類にも対応）
     if(!lines.some(l=>l.kind==='item')){
@@ -2655,7 +2712,7 @@ function openRcvEditor(id,presetProj){
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <label class="btn sm primary" style="cursor:pointer">📄 PDF・写真から読み取る<input type="file" accept="application/pdf,.pdf,image/*" style="display:none" onchange="rcvReadFile(this)"/></label>
           <button class="btn sm" onclick="const b=document.getElementById('re-paste');b.style.display=b.style.display==='none'?'block':'none'">📋 文章を貼り付けて読み取る</button>
-          <span style="font-size:11px;color:#888">金額・支払期限・請求日・請求元を自動で入れます</span>
+          <span style="font-size:11px;color:#888">金額・支払期限・請求日・請求元を自動で入れます。スクショは <b>Ctrl＋V</b> で貼り付けできます</span>
         </div>
         <div id="re-paste" style="display:none;margin-top:8px">
           <textarea id="re-text" placeholder="請求書の文章を貼り付けてください&#10;例）■請求金額：¥93,500（税込）&#10;　　■支払期限：2025年8月31日" style="width:100%;height:80px;font-size:12px;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea>
@@ -2706,7 +2763,7 @@ function rcvApply(sum,ocr){
     :'<span style="color:#c0392b">金額や日付を見つけられませんでした。手入力してください。</span>';
 }
 async function rcvReadFile(input){
-  const file=input.files[0];input.value='';if(!file)return;
+  const file=input.files[0];try{input.value='';}catch{}if(!file)return;
   RCV_FILE=file;
   const st=document.getElementById('re-status');st.textContent='読み取り中…';
   try{const {text,ocr}=await fileToText(file,m=>{st.textContent=m;});rcvApply(readDocSummary(text),ocr);
@@ -2940,7 +2997,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // ツールの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.04d';
+const APP_VERSION='2026.10.04e';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
