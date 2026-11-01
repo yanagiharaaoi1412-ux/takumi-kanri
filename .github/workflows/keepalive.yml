@@ -1,0 +1,19 @@
+# Supabase の無料プランは、しばらく使わないと自動で一時停止するため、
+# 3日ごとに軽く接続して「使われている」状態を保つ（匠技建・松島さんの両方）
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: '17 0 */3 * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ping
+        run: |
+          for p in "https://pnkfamydzkhvfklqjojc.supabase.co|sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF" \
+                   "https://lceskgjzdaflymakonkq.supabase.co|sb_publishable_Vd7zqTs8yQUhXZUU_ID92w_6CMBB1eO"; do
+            url="${p%%|*}"; key="${p##*|}"
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$url/rest/v1/records?select=id&limit=1" -H "apikey: $key" -H "Authorization: Bearer $key")
+            echo "$url -> $code"
+          done
