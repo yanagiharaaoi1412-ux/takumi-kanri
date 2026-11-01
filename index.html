@@ -3020,6 +3020,7 @@ function laborWorkers(){
   return m;
 }
 function laborBox(p){
+  if(!LABOR_ON())return '';
   const ls=laborOf(p).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const days=ls.reduce((a,l)=>a+(parseFloat(l.days)||0),0);
   const td='style="padding:6px 4px"';
@@ -3113,8 +3114,8 @@ function profitBox(p){
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       ${col('予定','見積書の販売額 − 仕入単価',plan&&plan.sales?plan:null,
         plan&&plan.sales?(plan.missing?`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※仕入単価が未入力の行が${plan.missing}行あります（原価0円で計算）</div>`:''):'見積書に仕入単価を入れると表示されます')}
-      ${col('実績','請求書の合計 − 受領請求書 − 労務費',act,
-        act?((lab?`<div style="font-size:10.5px;color:#777;margin-top:4px">原価のうち労務費 ${fmtY(lab)}</div>`:'')+(rc.length||lab?'':`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※受領請求書・労務費がまだありません（原価0円で計算）</div>`)):'請求書を作成すると表示されます')}
+      ${col('実績',LABOR_ON()?'請求書の合計 − 受領請求書 − 労務費':'請求書の合計 − 受領請求書の合計',act,
+        act?((lab?`<div style="font-size:10.5px;color:#777;margin-top:4px">原価のうち労務費 ${fmtY(lab)}</div>`:'')+(rc.length||lab?'':`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※受領請求書${LABOR_ON()?'・労務費':''}がまだありません（原価0円で計算）</div>`)):'請求書を作成すると表示されます')}
     </div></div>`;
 }
 function changeStatus(id,st){
@@ -3305,7 +3306,7 @@ function renderDash(){
   </div>
   <div class="dgrid">
     ${card(`${ymLabel(DB.ym)}の売上`,fmtY(cur.sales),`税抜 ${fmtY(cur.salesEx)}　請求書 ${cur.iv.length}件`,diff(cur.salesEx,prev.salesEx))}
-    ${card(`${ymLabel(DB.ym)}の原価（仕入＋労務費）`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件${cur.labor?`<br>うち労務費 ${fmtY(cur.labor)}`:''}`,diff(cur.costEx,prev.costEx))}
+    ${card(`${ymLabel(DB.ym)}の${LABOR_ON()?'原価（仕入＋労務費）':'原価（仕入）'}`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件${cur.labor?`<br>うち労務費 ${fmtY(cur.labor)}`:''}`,diff(cur.costEx,prev.costEx))}
     ${card(`${ymLabel(DB.ym)}の粗利（税抜）`,fmtY(cur.profit),cur.rate===null?'粗利率 —':`粗利率 <b>${cur.rate}%</b>`,diff(cur.profit,prev.profit),cur.profit<0?'#c0392b':'#1e4a32')}
     ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　原価 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#1e4a32')}
   </div>
@@ -3796,12 +3797,13 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.11.01d';
+const APP_VERSION='2026.11.01e';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
 const APP_CFG={staff:true,brand:''};
 const STAFF_ON=()=>APP_CFG.staff!==false;
+const LABOR_ON=()=>APP_CFG.labor!==false;   // 労務費（自社の作業員の人件費）の欄。一人親方は不要
 const SH={mode:'local',dir:null,pendingDir:null,cache:{projects:new Map(),customers:new Map(),received:new Map(),files:new Map()},
   mtime:{},issuer:null,issuerMtime:0,queue:Promise.resolve(),pending:0,err:'',dirty:false,remoteVer:'',busy:false,timer:null,lastSync:0,
   backend:'folder',sb:null,user:null,pendingIds:new Set(),members:{},roles:null};
