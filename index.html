@@ -2985,6 +2985,7 @@ function renderProjDetail(){
         <td style="padding:6px 4px;text-align:right;white-space:nowrap"><button class="btn sm" onclick="openRcvEditor('${r.id}')">編集</button></td></tr>`).join('')}</table>`
       :`<div style="font-size:12px;color:#aaa;padding:6px 0">まだありません</div>`}
     </div>`;})()}
+    ${laborBox(p)}
     <div style="margin-top:14px" id="pj-files"><div style="font-size:11px;color:#aaa">もらった書類を読み込み中…</div></div>
     <div style="margin-top:14px">
       <div style="font-size:11px;color:#666;font-weight:600;margin-bottom:6px">作成した帳票（${docs.length}件）</div>
@@ -3006,12 +3007,95 @@ function renderProjDetail(){
   renderProjFiles(p.id);
 }
 // 粗利（税抜）：予定＝見積の販売額−仕入額、実績＝請求書の合計−受領請求書の合計
+// ===== 労務費（自社で雇っている作業員の現場作業分）。消費税はかからないので税抜＝そのまま =====
+const laborOf=p=>Array.isArray(p&&p.labor)?p.labor:[];
+const laborAmt=l=>Math.round((parseFloat(l.days)||0)*(parseFloat(l.rate)||0));
+const laborSum=p=>laborOf(p).reduce((a,l)=>a+laborAmt(l),0);
+function laborWorkers(){
+  const m={};
+  getProjects().forEach(p=>laborOf(p).forEach(l=>{if(l.worker)m[l.worker]={rate:l.rate,at:Math.max(m[l.worker]?m[l.worker].at:0,l.savedAt||0)};}));
+  return m;
+}
+function laborBox(p){
+  const ls=laborOf(p).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const days=ls.reduce((a,l)=>a+(parseFloat(l.days)||0),0);
+  const td='style="padding:6px 4px"';
+  return `<div style="margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:11px;color:#666;font-weight:600">労務費（自社の作業員・${ls.length}件・${Math.round(days*10)/10}人工・合計 ${fmtY(laborSum(p))}）</span>
+      <button class="btn sm" style="margin-left:auto" onclick="openLaborEditor('${p.id}')">＋ 労務費を登録</button>
+    </div>
+    ${ls.length?`<table style="width:100%;border-collapse:collapse;font-size:12px">${ls.map(l=>`<tr style="border-bottom:1px solid #eee">
+      <td ${td} style="padding:6px 4px;width:90px">${fmtD(l.date)}</td><td ${td}>${txt(l.worker)}</td>
+      <td ${td} style="padding:6px 4px;text-align:right;white-space:nowrap">${l.days}人工 × ${fmtY(parseFloat(l.rate)||0)}</td>
+      <td ${td} style="padding:6px 4px;color:#777">${txt(l.memo)}</td>
+      <td ${td} style="padding:6px 4px;text-align:right">${fmtY(laborAmt(l))}</td>
+      <td ${td} style="padding:6px 4px;text-align:right;white-space:nowrap"><button class="btn sm" onclick="openLaborEditor('${p.id}','${l.id}')">編集</button></td></tr>`).join('')}</table>`
+    :`<div style="font-size:12px;color:#aaa;padding:6px 0">まだありません　<span style="font-size:11px">（社員の職人さんが現場で作業した日数と日当を入れると、粗利の実績に反映されます）</span></div>`}
+  </div>`;
+}
+function openLaborEditor(pid,lid){
+  const p=getProject(pid);if(!p)return;
+  const l=lid?laborOf(p).find(x=>x.id===lid):{date:todayStr(),worker:'',days:1,rate:'',memo:''};
+  if(!l)return;
+  const ws=laborWorkers();
+  document.getElementById('pj-modal').innerHTML=`
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:20px 22px;width:520px;max-width:94vw;max-height:90vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="font-size:15px;font-weight:700;color:#1e4a32;margin-bottom:4px">${lid?'労務費を編集':'労務費を登録'}</div>
+      <div style="font-size:11.5px;color:#777;margin-bottom:10px">自社で雇っている作業員が、この現場で作業した分を入れます。下請けや一人親方への支払いは「受領請求書」に登録してください。</div>
+      <div class="form-grid">
+        <div class="field"><label>作業日（まとめて入れる場合は最終日）</label><input id="lb-date" type="date" value="${esc(l.date||'')}"/></div>
+        <div class="field"><label>作業者 <span style="color:#c0392b">*</span></label><input id="lb-worker" list="lb-workers" value="${esc(l.worker||'')}" placeholder="例：山田 太郎" oninput="laborFillRate()"/>
+          <datalist id="lb-workers">${Object.keys(ws).map(n=>`<option value="${esc(n)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label>人工（日数） <span style="color:#c0392b">*</span></label><input id="lb-days" value="${esc(String(l.days??''))}" placeholder="例：1 / 0.5 / 3" oninput="laborCalc()"/></div>
+        <div class="field"><label>日当（1人工あたり・円） <span style="color:#c0392b">*</span></label><input id="lb-rate" value="${esc(String(l.rate??''))}" placeholder="例：20000" oninput="laborCalc()"/></div>
+        <div class="field full"><label>メモ</label><input id="lb-memo" value="${esc(l.memo||'')}" placeholder="例：解体作業、残業込み など"/></div>
+      </div>
+      <div id="lb-total" style="font-size:13px;margin-top:6px;text-align:right"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        ${lid?`<button class="btn del" style="margin-right:auto" onclick="deleteLabor('${pid}','${lid}')">削除</button>`:''}
+        <button class="btn" onclick="closeProjEditor()">キャンセル</button>
+        <button class="btn primary" onclick="saveLabor('${pid}',${lid?`'${lid}'`:'null'})">${lid?'保存':'登録する'}</button>
+      </div>
+    </div>
+  </div>`;
+  commaAll(document.getElementById('pj-modal'));laborCalc();
+  setTimeout(()=>{const e=document.getElementById(lid?'lb-days':'lb-worker');if(e)e.focus();},30);
+}
+// 作業者を選んだら、前回の日当を自動で入れる
+function laborFillRate(){
+  const w=document.getElementById('lb-worker').value.trim(),r=document.getElementById('lb-rate');
+  const k=laborWorkers()[w];if(k&&!r.value.trim()){r.value=commaStr(k.rate);laborCalc();}
+}
+function laborCalc(){
+  const d=numIn(document.getElementById('lb-days').value)||0,r=numIn(document.getElementById('lb-rate').value)||0;
+  const el=document.getElementById('lb-total');if(el)el.innerHTML=`労務費：<b>${fmtY(Math.round(d*r))}</b>`;
+}
+function saveLabor(pid,lid){
+  const p=getProject(pid);if(!p)return;
+  const v=k=>document.getElementById('lb-'+k).value.trim();
+  const days=numIn(v('days')),rate=numIn(v('rate'));
+  if(!v('worker')){alert('作業者を入力してください');return;}
+  if(!days||days<=0){alert('人工（日数）を入力してください');return;}
+  if(!rate||rate<=0){alert('日当を入力してください');return;}
+  const list=laborOf(p).slice();
+  const rec={id:lid||('lb'+Date.now()+Math.random().toString(36).slice(2,5)),date:v('date'),worker:v('worker'),days,rate,memo:v('memo'),savedAt:Date.now()};
+  const i=list.findIndex(x=>x.id===lid);if(i>=0)list[i]=rec;else list.push(rec);
+  p.labor=list;putProject(p);closeProjEditor();P.openId=pid;renderProjList();
+}
+function deleteLabor(pid,lid){
+  const p=getProject(pid);if(!p)return;
+  if(!confirm('この労務費を削除しますか？'))return;
+  p.labor=laborOf(p).filter(x=>x.id!==lid);putProject(p);closeProjEditor();P.openId=pid;renderProjList();
+}
 function profitBox(p){
   const est=latestEstimate(p);
   const plan=est&&est.F?lineProfit(est.F.lines,est.taxType):null;
   const rc=rcvOfProject(p.id);
   const salesInc=hasYen(p.contractActual)?p.contractActual:null;
-  const costEx=rc.reduce((a,r)=>a+(hasYen(r.tax)?(r.amount||0)-r.tax:Math.round((r.amount||0)/1.1)),0);
+  const lab=laborSum(p);
+  const costEx=rc.reduce((a,r)=>a+(hasYen(r.tax)?(r.amount||0)-r.tax:Math.round((r.amount||0)/1.1)),0)+lab;
   const act=salesInc!==null?(()=>{const sales=Math.round(salesInc/1.1);const profit=sales-costEx;return {sales,cost:costEx,profit,rate:sales?Math.round(profit/sales*1000)/10:0};})():null;
   const col=(title,sub,x,note)=>`<div style="flex:1;min-width:230px;border:1px solid #e3ebe5;border-radius:8px;padding:10px 12px;background:#fafcfb">
       <div style="font-size:11px;color:#666;font-weight:600">${title} <span style="font-weight:400;color:#999">${sub}</span></div>
@@ -3026,8 +3110,8 @@ function profitBox(p){
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       ${col('予定','見積書の販売額 − 仕入単価',plan&&plan.sales?plan:null,
         plan&&plan.sales?(plan.missing?`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※仕入単価が未入力の行が${plan.missing}行あります（原価0円で計算）</div>`:''):'見積書に仕入単価を入れると表示されます')}
-      ${col('実績','請求書の合計 − 受領請求書の合計',act,
-        act?(rc.length?'':`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※受領請求書がまだありません（原価0円で計算）</div>`):'請求書を作成すると表示されます')}
+      ${col('実績','請求書の合計 − 受領請求書 − 労務費',act,
+        act?((lab?`<div style="font-size:10.5px;color:#777;margin-top:4px">原価のうち労務費 ${fmtY(lab)}</div>`:'')+(rc.length||lab?'':`<div style="font-size:10.5px;color:#b86e00;margin-top:4px">※受領請求書・労務費がまだありません（原価0円で計算）</div>`)):'請求書を作成すると表示されます')}
     </div></div>`;
 }
 function changeStatus(id,st){
@@ -3148,9 +3232,11 @@ function dashSource(){
 function dashMonth(src,ym){
   const iv=src.inv.filter(x=>ymOf(x.d.date)===ym),rc=src.rcv.filter(r=>ymOf(r.date)===ym);
   const sales=iv.reduce((a,x)=>a+(x.d.total||0),0),salesEx=iv.reduce((a,x)=>a+exTax(x.d.total),0);
-  const cost=rc.reduce((a,r)=>a+(r.amount||0),0),costEx=rc.reduce((a,r)=>a+rcvEx(r),0);
+  const lb=[];src.projs.forEach(p=>laborOf(p).forEach(l=>{if(ymOf(l.date)===ym)lb.push({p,l});}));
+  const labor=lb.reduce((a,x)=>a+laborAmt(x.l),0);
+  const cost=rc.reduce((a,r)=>a+(r.amount||0),0)+labor,costEx=rc.reduce((a,r)=>a+rcvEx(r),0)+labor;
   const profit=salesEx-costEx;
-  return {ym,iv,rc,sales,salesEx,cost,costEx,profit,rate:salesEx?Math.round(profit/salesEx*1000)/10:null};
+  return {ym,iv,rc,lb,labor,sales,salesEx,cost,costEx,profit,rate:salesEx?Math.round(profit/salesEx*1000)/10:null};
 }
 function dashChart(months){
   const pw=(document.getElementById('panel-dash')||{}).clientWidth||800;
@@ -3166,7 +3252,7 @@ function dashChart(months){
   const bw=Math.max(4,Math.min(18,cw/3.2));
   months.forEach((m,i)=>{
     const cx=L+cw*i+cw/2;
-    const bar=(v,x,c)=>`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(0.5,Math.abs(y(v)-y(0)))}" fill="${c}" rx="1.5"><title>${ymLabel(m.ym)} ${c==='#1e4a32'?'売上':'仕入'}（税抜）${fmtY(v)}</title></rect>`;
+    const bar=(v,x,c)=>`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(0.5,Math.abs(y(v)-y(0)))}" fill="${c}" rx="1.5"><title>${ymLabel(m.ym)} ${c==='#1e4a32'?'売上':'原価'}（税抜）${fmtY(v)}</title></rect>`;
     g+=bar(m.salesEx,cx-bw-1,'#1e4a32')+bar(m.costEx,cx+1,'#c9b26b');
     g+=`<text x="${cx}" y="${H-B+15}" text-anchor="middle" font-size="${cw<34?9:10.5}" fill="${i===months.length-1?'#1e4a32':'#888'}" font-weight="${i===months.length-1?700:400}">${+m.ym.slice(5)}月</text>`;
   });
@@ -3197,6 +3283,7 @@ function renderDash(){
   // 担当別（今月）：共同担当は人数で割って計上
   const by={};const add=(p,k,v)=>{const st=staffOf(p);const ns=st.length?st:['（担当未設定）'];ns.forEach(n=>{by[n]=by[n]||{s:0,c:0};by[n][k]+=v/ns.length;});};
   cur.iv.forEach(x=>add(x.p,'s',exTax(x.d.total)));
+  cur.lb.forEach(x=>add(x.p,'c',laborAmt(x.l)));
   cur.rc.forEach(r=>{const p=r.projectId&&getProject(r.projectId);if(p)add(p,'c',rcvEx(r));else{by['（案件なし）']=by['（案件なし）']||{s:0,c:0};by['（案件なし）'].c+=rcvEx(r);}});
   const staffRows=Object.entries(by).sort((a,b)=>(b[1].s-b[1].c)-(a[1].s-a[1].c));
   const go=id=>`onclick="P.openId='${id}';setMainTab('proj');setTimeout(()=>{const e=document.getElementById('pj-detail');if(e)e.scrollIntoView({behavior:'smooth'});},50)" style="cursor:pointer"`;
@@ -3215,9 +3302,9 @@ function renderDash(){
   </div>
   <div class="dgrid">
     ${card(`${ymLabel(DB.ym)}の売上`,fmtY(cur.sales),`税抜 ${fmtY(cur.salesEx)}　請求書 ${cur.iv.length}件`,diff(cur.salesEx,prev.salesEx))}
-    ${card(`${ymLabel(DB.ym)}の仕入`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件`,diff(cur.costEx,prev.costEx))}
+    ${card(`${ymLabel(DB.ym)}の原価（仕入＋労務費）`,fmtY(cur.cost),`税抜 ${fmtY(cur.costEx)}　受領請求書 ${cur.rc.length}件${cur.labor?`<br>うち労務費 ${fmtY(cur.labor)}`:''}`,diff(cur.costEx,prev.costEx))}
     ${card(`${ymLabel(DB.ym)}の粗利（税抜）`,fmtY(cur.profit),cur.rate===null?'粗利率 —':`粗利率 <b>${cur.rate}%</b>`,diff(cur.profit,prev.profit),cur.profit<0?'#c0392b':'#1e4a32')}
-    ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　仕入 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#1e4a32')}
+    ${card(`${DB.ym.slice(0,4)}年の累計（1〜${+DB.ym.slice(5)}月・税抜）`,fmtY(fy.pf),`売上 ${fmtY(fy.se)}　原価 ${fmtY(fy.ce)}`,fy.rate===null?'':`<span style="font-size:10.5px;color:#666">粗利率 ${fy.rate}%</span>`,fy.pf<0?'#c0392b':'#1e4a32')}
   </div>
   <div class="dgrid" style="margin-top:10px">
     ${card('未回収（入金待ちの請求書）',fmtY(arTotal),`${unpaidInv.length}件`,arOver.length?`<span class="dwarn">⚠ 支払期限切れ ${arOver.length}件 ${fmtY(arOver.reduce((a,x)=>a+(x.d.total||0),0))}</span>`:'')}
@@ -3226,8 +3313,8 @@ function renderDash(){
     ${card('受注・施工中の案件',`${working.length}件`,`契約額合計 ${fmtY(workSum)}（税込）`,lateEnd.length?`<span class="dwarn">⚠ 完工予定日を過ぎた案件 ${lateEnd.length}件</span>`:'')}
   </div>
   <div class="dbox" style="margin-top:12px">
-    <div class="dbox-t">売上・仕入・粗利の推移（直近12か月・税抜）
-      <span style="font-weight:400;margin-left:10px;font-size:11px"><span style="display:inline-block;width:10px;height:10px;background:#1e4a32;border-radius:2px"></span> 売上　<span style="display:inline-block;width:10px;height:10px;background:#c9b26b;border-radius:2px"></span> 仕入　<span style="color:#d35400;font-weight:700">━●</span> 粗利</span></div>
+    <div class="dbox-t">売上・原価・粗利の推移（直近12か月・税抜）
+      <span style="font-weight:400;margin-left:10px;font-size:11px"><span style="display:inline-block;width:10px;height:10px;background:#1e4a32;border-radius:2px"></span> 売上　<span style="display:inline-block;width:10px;height:10px;background:#c9b26b;border-radius:2px"></span> 原価　<span style="color:#d35400;font-weight:700">━●</span> 粗利</span></div>
     ${dashChart(months)}
   </div>
   <div class="dgrid2" style="margin-top:12px">
@@ -3235,7 +3322,7 @@ function renderDash(){
       ${cur.iv.length?`<table style="width:100%;border-collapse:collapse">${cur.iv.sort((a,b)=>(a.d.date||'').localeCompare(b.d.date||'')).map(x=>`<tr ${go(x.p.id)}><td ${td}>${fmtD(x.d.date).slice(5)}</td><td ${td}><b>${txt(x.p.name)}</b><div style="font-size:10.5px;color:#888">${txt(x.p.client)}　${esc(x.d.no)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>`:empty('この月に発行した請求書はありません')}
     </div>
     ${STAFF_ON()?`    <div class="dbox"><div class="dbox-t">担当別（${ymLabel(DB.ym)}・税抜）<span style="font-weight:400;font-size:10.5px;color:#999;margin-left:6px">共同担当は人数で割って計上</span></div>
-      ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">仕入</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#1e4a32'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・仕入はありません')}
+      ${staffRows.length?`<table style="width:100%;border-collapse:collapse"><tr><td ${td}></td><td ${tdr}><span style="color:#888;font-size:11px">売上</span></td><td ${tdr}><span style="color:#888;font-size:11px">原価</span></td><td ${tdr}><span style="color:#888;font-size:11px">粗利</span></td></tr>${staffRows.map(([n,v])=>`<tr><td ${td}>${n.startsWith('（')?`<span style="color:#999">${esc(n)}</span>`:`<span class="staff-chip">${esc(n)}</span>`}</td><td ${tdr}>${fmtY(v.s)}</td><td ${tdr}>${fmtY(v.c)}</td><td ${tdr}><b style="color:${v.s-v.c<0?'#c0392b':'#1e4a32'}">${fmtY(v.s-v.c)}</b></td></tr>`).join('')}</table>`:empty('この月の売上・原価はありません')}
     </div>`:''}
     <div class="dbox"><div class="dbox-t">入金待ちの請求書</div>
       ${unpaidInv.length?`<table style="width:100%;border-collapse:collapse">${unpaidInv.slice(0,8).map(x=>`<tr ${go(x.p.id)}><td ${td}>${x.due?`<span style="${x.due<today?'color:#c0392b;font-weight:700':''}">${fmtD(x.due)}</span>`:'<span style="color:#bbb">期限なし</span>'}</td><td ${td}>${txt(x.p.name)}<div style="font-size:10.5px;color:#888">${txt(x.p.client)}</div></td><td ${tdr}>${fmtY(x.d.total)}</td></tr>`).join('')}</table>${unpaidInv.length>8?`<div style="font-size:11px;color:#888;margin-top:4px">ほか ${unpaidInv.length-8}件</div>`:''}
@@ -3255,7 +3342,7 @@ function renderDash(){
   </div>
   <div style="font-size:10.5px;color:#999;margin-top:12px;line-height:1.7">
     ※ 売上：その月に発行した請求書（「発行確定」したもの）の合計。下書きは含みません。<br>
-    ※ 仕入：その月が請求日の受領請求書の合計。　※ 粗利＝売上（税抜）−仕入（税抜）。
+    ※ 原価：その月が請求日の受領請求書（税抜）＋その月の作業日の労務費。　※ 粗利＝売上（税抜）−原価（税抜）。
   </div>`;
 }
 window.addEventListener('resize',()=>{clearTimeout(DB.rt);DB.rt=setTimeout(()=>{if(S.mainTab==='dash')renderDash();},250);});
@@ -3706,7 +3793,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.11.01a';
+const APP_VERSION='2026.11.01b';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
