@@ -2908,17 +2908,17 @@ function renderProjList(){
   ${noStaff&&STAFF_ON()?`<div onclick="P.staff=P.staff==='__none'?'':'__none';renderProjects()" style="cursor:pointer;font-size:12px;color:#c0392b;background:#fdecea;border:1px solid #f3c2bc;border-radius:6px;padding:6px 10px;margin-bottom:10px">⚠ 担当が入力されていない案件が <b>${noStaff}件</b> あります。${P.staff==='__none'?'（クリックで全件表示に戻す）':'（クリックで絞り込み）'}</div>`:''}
   <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:auto">
   <table style="width:100%;border-collapse:collapse">
-    <thead><tr><th ${th}>案件No</th><th ${th}>工事名</th>${STAFF_ON()?`<th ${th}>担当</th>`:''}<th ${th}>顧客</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>ステータス</th><th ${th}>帳票</th></tr></thead>
+    <thead><tr><th ${th}>案件No</th><th ${th}>ステータス</th><th ${th}>工事名</th>${STAFF_ON()?`<th ${th}>担当</th>`:''}<th ${th}>顧客</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th}>帳票</th></tr></thead>
     <tbody>
     ${list.length?list.map(p=>`<tr class="${p.status==='失注'?'lost-row':''}" onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
       <td ${td}><span style="color:#888">${esc(p.no)}</span></td>
+      <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}><b>${txt(p.name)}</b></td>
       ${STAFF_ON()?`<td ${td}>${staffChips(p)}</td>`:''}
       <td ${td}>${txt(p.client)} ${txt(p.clientTitle||'')}</td>
+      <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:12px;text-align:right;white-space:nowrap">${hasYen(p.contractActual)?fmtY(p.contractActual):hasYen(p.contract)?`<span style="color:#999;font-size:11px">予定 </span><span style="color:#888">${fmtY(p.contract)}</span>`:'<span style="color:#bbb">—</span>'}</td>
       <td ${td}>${txt(p.site)}</td>
       <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:11.5px;white-space:nowrap">${p.start||p.end?`${fmtD(p.start)} 〜 ${fmtD(p.end)}`:'<span style="color:#bbb">未定</span>'}</td>
-      <td ${td} style="padding:8px;border-bottom:1px solid #eee;font-size:12px;text-align:right;white-space:nowrap">${hasYen(p.contractActual)?fmtY(p.contractActual):hasYen(p.contract)?`<span style="color:#999;font-size:11px">予定 </span><span style="color:#888">${fmtY(p.contract)}</span>`:'<span style="color:#bbb">—</span>'}</td>
-      <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}>${(p.docs||[]).length}件</td>
     </tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:28px;color:#aaa;font-size:12px">${visibleProjects().length?'該当する案件がありません':'まだ案件がありません。「＋ 新規案件」から起票してください。'}</td></tr>`}
     </tbody>
@@ -3796,7 +3796,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.11.01c';
+const APP_VERSION='2026.11.01d';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
