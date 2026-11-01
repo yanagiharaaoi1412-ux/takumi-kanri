@@ -453,6 +453,15 @@ function unitOptions(){
   (F.lines||[]).forEach(l=>{const u=String(l.unit||'').trim();if(u&&u.length<=6)set.add(u);});
   return [...set];
 }
+// 振込先：「普通」「当座」だけの行と、次の行の口座番号は1行にまとめて表示（例：普通　3449930）
+function bankDisplayLines(lines){
+  const out=[];const L=(lines||[]).map(x=>String(x).trim()).filter(Boolean);
+  for(let i=0;i<L.length;i++){
+    if(/^(普通|当座|貯蓄|総合)(預金)?$/.test(L[i])&&L[i+1]&&/^[0-9０-９\-－ ]{4,}$/.test(L[i+1])){out.push(L[i]+'　'+L[i+1]);i++;}
+    else out.push(L[i]);
+  }
+  return out;
+}
 function addLine(){saveFormState();F.lines.push({desc:'',qty:'',unit:'',unitPrice:'',memo:'',cost:''});renderForm();markDirty();}
 function removeLine(i){
   saveFormState();
@@ -897,9 +906,9 @@ function pat3(d,totals,receiptAmt,docLabel){
 
   ${d.id==='invoice'?`
   ${ISSUER.bankLines.length?`<div style="display:flex;margin-top:16px;border:1px solid ${NV};font-size:10.5px;width:300px">
-    <div style="background:${NV};color:white;writing-mode:vertical-rl;text-orientation:mixed;padding:8px 6px;font-size:11px;font-weight:700;letter-spacing:.15em;flex-shrink:0">振込先情報</div>
+    <div style="background:${NV};color:white;writing-mode:vertical-rl;text-orientation:mixed;padding:8px 6px;font-size:11px;font-weight:700;letter-spacing:.15em;flex-shrink:0;display:flex;align-items:center;justify-content:center">振込先情報</div>
     <div style="padding:10px 12px;line-height:1.6;color:#222;display:flex;flex-direction:column;justify-content:center">
-      ${ISSUER.bankLines.map(l=>`<div>${txt(l)}</div>`).join('')}
+      ${bankDisplayLines(ISSUER.bankLines).map(l=>`<div>${txt(l)}</div>`).join('')}
     </div>
   </div>`:''}
   <div style="margin-top:14px;font-size:10px;color:#333;line-height:1.6">
@@ -3697,7 +3706,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.10.05e';
+const APP_VERSION='2026.11.01a';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
