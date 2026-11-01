@@ -2910,7 +2910,7 @@ function renderProjList(){
   <table style="width:100%;border-collapse:collapse">
     <thead><tr><th ${th}>案件No</th><th ${th}>ステータス</th><th ${th}>工事名</th>${STAFF_ON()?`<th ${th}>担当</th>`:''}<th ${th}>顧客</th><th ${th} style="text-align:right;font-size:11px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #e0e0e0">契約金額</th><th ${th}>工事場所</th><th ${th}>工期</th><th ${th}>帳票</th></tr></thead>
     <tbody>
-    ${list.length?list.map(p=>`<tr class="${p.status==='失注'?'lost-row':''}" onclick="P.openId='${p.id}';renderProjDetail();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
+    ${list.length?list.map(p=>`<tr class="${p.status==='失注'?'lost-row':''}" onclick="P.openId='${p.id}';renderProjList();document.getElementById('pj-detail').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;background:${P.openId===p.id?'#eef5f0':'#fff'}">
       <td ${td}><span style="color:#888">${esc(p.no)}</span></td>
       <td ${td}>${statusBadge(p.status)}</td>
       <td ${td}><b>${txt(p.name)}</b></td>
@@ -3797,7 +3797,7 @@ async function importAll(input){
 
 // ===================== 共有フォルダ（Googleドライブ）でのデータ共有 =====================
 // システムの版（更新したら上げる。共有フォルダに新しい版が置かれると、開いている人に再読み込みを案内）
-const APP_VERSION='2026.11.01f';
+const APP_VERSION='2026.11.01g';
 // Webアプリ（クラウド）版の接続先。空なら「このパソコン／共有フォルダ」で動く
 const CLOUD={url:"https://pnkfamydzkhvfklqjojc.supabase.co",key:"sb_publishable_moBL-ZDzqpYRIC1Tm0d9iA_IxcDp4vF"};
 // システムごとの設定（公開用を作るときに書き換える）。staff=false で担当者・管理者の機能を使わない（1人で使う場合）
